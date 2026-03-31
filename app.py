@@ -619,9 +619,19 @@ def normalize_shoken_year(value: str) -> str:
     return s
 
 
+
+
+def get_shoken_problem_no(row: pd.Series) -> str:
+    for col in ["問題番号", "設問番号", "問番号", "番号", "No", "NO"]:
+        if col in row.index:
+            value = str(row.get(col, "")).strip()
+            if value and value.lower() != "nan":
+                return value
+    return ""
+
 def render_shoken_learning(df: pd.DataFrame):
     shoken_df = load_shoken().copy()
-    for col in ["年度", "問題文", "論点"]:
+    for col in ["年度", "問題文", "論点", "問題番号", "設問番号", "問番号", "番号", "No", "NO"]:
         if col not in shoken_df.columns:
             shoken_df[col] = ""
         shoken_df[col] = shoken_df[col].fillna("").astype(str).str.strip()
@@ -668,7 +678,11 @@ def render_shoken_learning(df: pd.DataFrame):
         return
 
     for i, (_, row) in enumerate(year_df.iterrows(), start=1):
-        with st.expander(f"{i}. 問題", expanded=(i == 1)):
+        problem_no = get_shoken_problem_no(row)
+        title = f"{i}. {problem_no}" if problem_no else f"{i}. 問題"
+        with st.expander(title, expanded=(i == 1)):
+            if problem_no:
+                st.caption(f"問題番号: {problem_no}")
             st.markdown("**問題文**")
             render_multiline_text(row.get("問題文", ""))
             st.markdown("**論点**")
