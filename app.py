@@ -126,7 +126,7 @@ def load_shoken() -> pd.DataFrame:
     try:
         return pd.read_csv(SHOKEN_FILE, encoding="utf-8-sig")
     except Exception:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["年度", "問題文", "論点"])
 
 
 def first_existing_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
@@ -183,6 +183,8 @@ def ensure_state():
         "show_answer": False,
         "study_seconds_today": 0,
         "study_date_jst": now_jst().date().isoformat(),
+        "timer_running": False,
+        "timer_start_ts": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -191,6 +193,8 @@ def ensure_state():
     if st.session_state["study_date_jst"] != today_iso:
         st.session_state["study_date_jst"] = today_iso
         st.session_state["study_seconds_today"] = 0
+        st.session_state["timer_running"] = False
+        st.session_state["timer_start_ts"] = None
 
 
 def get_primary_eval(question_id: str) -> str:
@@ -217,6 +221,88 @@ def toggle_review_flag(question_id: str):
     hist = st.session_state["user_state"]["history"].setdefault(question_id, {"count": 0, "last_rated_at": "", "score_total": 0})
     hist["last_rated_at"] = now_jst().isoformat(timespec="seconds")
     save_user_state()
+
+
+def start_timer():
+    st.session_state["timer_running"] = True
+    st.session_state["timer_start_ts"] = now_jst().timestamp()
+
+
+def stop_timer():
+    if st.session_state.get("timer_running") and st.session_state.get("timer_start_ts") is not None:
+        elapsed = int(now_jst().timestamp() - st.session_state["timer_start_ts"])
+        st.session_state["study_seconds_today"] += max(elapsed, 0)
+    st.session_state["timer_running"] = False
+    st.session_state["timer_start_ts"] = None
+
+
+def render_timer(now_tokyo: datetime):
+    st.markdown("### 今日の勉強時間")
+    running_elapsed_seconds = 0
+    if st.session_state.get("timer_running") and st.session_state.get("timer_start_ts") is not None:
+        running_elapsed_seconds = int(now_tokyo.timestamp() - st.session_state["timer_start_ts"])
+    display_seconds = int(st.session_state.get("study_seconds_today", 0)) + running_elapsed_seconds
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        h = display_seconds // 3600
+        m = (display_seconds % 3600) // 60
+        s = display_seconds % 60
+        st.metric("今日の累計勉強時間", f"{h:02d}:{m:02d}:{s:02d}")
+    with c2:
+        if st.session_state.get("timer_running"):
+            st.button("学習終了", use_container_width=True, on_click=stop_timer)
+        else:
+            st.button("学習開始", use_container_width=True, on_click=start_timer)
+    with c3:
+        if st.session_state.get("timer_running"):
+            st.success("計測中")
+        else:
+            st.info("停止中")
+
+
+def chapter_summary(df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    chapters = [x for x in df["章"].dropna().astype(str).unique().tolist() if str(x).strip()]
+    total_all = understood_all = caution_all = review_all = 0
+    for chapter in sorted(chapters, key=natural_sort_key):
+        chapter_df = df[df["章"].astype(str) == str(chapter)]
+        ids = chapter_df["id"].astype(str).tolist()
+        total = len(ids)
+        understood = sum(1 for qid in ids if get_primary_eval(qid) == "理解")
+        caution = sum(1 for qid in ids if get_primary_eval(qid) == "要注意")
+        review = sum(1 for qid in ids if is_review_flagged(qid))
+        total_all += total
+        understood_all += understood
+        caution_all += caution
+        review_all += review
+        rows.append({"章": chapter, "総数": total, "理解": understood, "要注意": caution, "後で復習": review, "理解度": f"{(understood / total * 100):.0f}%" if total else "0%"})
+    if total_all:
+        rows.append({"章": "合計", "総数": total_all, "理解": understood_all, "要注意": caution_all, "後で復習": review_all, "理解度": f"{(understood_all / total_all * 100):.0f}%" if total_all else "0%"})
+    return pd.DataFrame(rows)
+
+
+def pick_home_recommendation(df: pd.DataFrame):
+    today_group, _, _ = today_group_info()
+    if "曜日グループ" in df.columns:
+        today_df = df[df["曜日グループ"].astype(str) == today_group].copy()
+        if not today_df.empty:
+            untouched = today_df[today_df["id"].astype(str).map(lambda x: (get_primary_eval(x) == "") and (not is_review_flagged(x)))]
+            if not untouched.empty:
+                return untouched.iloc[0], "今日の1問"
+            return today_df.iloc[0], "今日の1問"
+    flagged_df = df[df["id"].astype(str).map(is_review_flagged)].copy()
+    if not flagged_df.empty:
+        return flagged_df.iloc[0], "後で復習"
+    caution_df = df[df["id"].astype(str).map(lambda x: get_primary_eval(x) == "要注意")].copy()
+    if not caution_df.empty:
+        return caution_df.iloc[0], "要注意"
+    return df.iloc[0], "おすすめ"
+
+
+def go_to_question(question_id: str, target_menu: str):
+    st.session_state["main_menu"] = target_menu
+    st.session_state["current_id"] = str(question_id)
+    st.session_state["show_answer"] = False
 
 
 def previous_action_text(question_id: str) -> str:
@@ -412,16 +498,44 @@ def format_question_label(row: pd.Series) -> str:
 
 
 def render_dashboard(df: pd.DataFrame):
-    total = len(df)
-    rated = sum(1 for qid in df["id"].astype(str) if get_primary_eval(qid))
-    review_count = sum(1 for qid in df["id"].astype(str) if is_review_flagged(qid))
-    c1, c2, c3 = st.columns(3)
-    c1.metric("総問題数", total)
-    c2.metric("評価済み", rated)
-    c3.metric("後で復習", review_count)
-    st.markdown("### 使い方")
-    st.write("左のメニューから学習方法を選び、問題を開いてください。解答を表示すると、解答の下・自己評価の上に解説が表示されます。")
+    st.markdown("### 学習ダッシュボード")
+    all_ids = df["id"].astype(str).tolist()
+    total_count = len(all_ids)
+    understood_count = sum(1 for qid in all_ids if get_primary_eval(qid) == "理解")
+    understanding_ratio = understood_count / total_count if total_count else 0.0
+    st.progress(understanding_ratio)
+    st.caption(f"全体理解度 {understanding_ratio * 100:.0f}%")
+    chapter_df = chapter_summary(df)
+    if not chapter_df.empty:
+        st.dataframe(chapter_df, use_container_width=True, hide_index=True)
 
+    st.info(
+        "学習内容は各端末のブラウザ内に保存されます。"
+        " そのため、このスマホで付けた評価や復習フラグは、このスマホでは残りますが、"
+        " 別のPCで開いた場合やスマホを変えた場合は、表示内容が一致しないことがあります。"
+    )
+
+    reco, reco_kind = pick_home_recommendation(df)
+    button_label = "今日の1問を開く" if reco_kind == "今日の1問" else "この問題を開く"
+    target_menu = "今日の課題" if reco_kind == "今日の1問" else "章ごとに学ぶ"
+
+    st.markdown("### すぐ始める")
+    c1, c2, c3 = st.columns(3)
+    c1.info("今日の1問にすぐ飛べます。")
+    c2.info("左メニューで『🚩 後で復習だけ表示』に切り替えできます。")
+    c3.info("章別進捗を見ながら弱点を潰せます。")
+    st.button(button_label, use_container_width=True, on_click=go_to_question, args=(str(reco["id"]), target_menu))
+
+    _, _, now_tokyo = today_group_info()
+    render_timer(now_tokyo)
+
+    reco_text = f"{reco_kind}: {reco.get('年度', '')}年 第{reco['章']}章 {reco['問題種別']}"
+    if reco_kind == "後で復習":
+        st.error(reco_text)
+    elif reco_kind == "要注意":
+        st.warning(reco_text)
+    else:
+        st.success(reco_text)
 
 def render_today_tasks(df: pd.DataFrame, explanation_col: str | None):
     today_group, weekday_name, _ = today_group_info()
@@ -495,110 +609,70 @@ def render_textbook_learning(df: pd.DataFrame):
     st.link_button("アクチュアリー会の教科書ページへ", "https://www.actuaries.jp/examin/textbook/", use_container_width=True)
 
 
+def normalize_shoken_year(value: str) -> str:
+    s = str(value).strip()
+    if not s or s.lower() == "nan":
+        return ""
+    m = re.search(r"(20\d{2}|19\d{2})", s)
+    if m:
+        return f"{m.group(1)}年度"
+    return s
+
+
 def render_shoken_learning(df: pd.DataFrame):
-    shoken_df = load_shoken()
+    shoken_df = load_shoken().copy()
+    for col in ["年度", "問題文", "論点"]:
+        if col not in shoken_df.columns:
+            shoken_df[col] = ""
+        shoken_df[col] = shoken_df[col].fillna("").astype(str).str.strip()
+    shoken_df["年度表示"] = shoken_df["年度"].map(normalize_shoken_year)
+    shoken_df = shoken_df[(shoken_df["問題文"] != "") | (shoken_df["論点"] != "")].copy()
 
     st.subheader("所見で学ぶ")
-    options = ["所見の習得方法"] + [f"{year}年度" for year in range(2025, 2017, -1)]
-    st.session_state.setdefault("shoken_select", options[0])
-
-    selected = st.selectbox(
-        "選択",
-        options,
-        index=options.index(st.session_state["shoken_select"]) if st.session_state.get("shoken_select") in options else 0,
-        key="shoken_select",
-    )
+    options = ["所見の習得方法", "2025年度", "2024年度", "2023年度", "2022年度", "2021年度", "2020年度", "2019年度", "2018年度"]
+    selected = st.selectbox("選択", options, key="shoken_select")
 
     if selected == "所見の習得方法":
         st.markdown("### 所見の習得方法")
         st.markdown(
             """
-            **1. 年度ごとの内容をまず暗記する**  
-            所見は、頻出テーマに対して「どういう切り口で書くか」が凝縮されています。まずは2018年度以降の問題文と論点を見て、各年度で何が問われ、どの切り口で書くべきかをそのまま覚えるところから始めるのが効果的です。
+所見は、**問題文を見たときに論点を思い出し、一定の型で書けるようにすること**が重要です。
 
-            **2. 中問を徹底する**  
-            生保2では、中問で問われる論点のまとまりを押さえることが重要です。単語や制度の知識を点で覚えるだけでなく、  
-            「このテーマなら、何を順番に書くべきか」  
-            を中問単位で整理しておくと、本番で答案を作りやすくなります。
+**1. 年度ごとの問題文と論点を暗記する**  
+各年度の問題文と論点を繰り返し見て、何がどう問われたかを整理します。所見はテーマが違っても、使う視点が共通しやすいです。
 
-            **3. 考えるひな形を自分の中に持っておく**  
-            暗記した内容を再現できるだけでなく、問い方が少し変わっても書けるように、次のようなひな形を持っておくのがおすすめです。  
-            - 何が論点か  
-            - なぜそれが問題になるか  
-            - 制度上・実務上どう整理されるか  
-            - メリット・デメリットは何か  
-            - 会社・契約者・販売現場などにどんな影響があるか  
-            この順で考える癖がつくと、未知の問いにも対応しやすくなります。
+**2. 中問を徹底する**  
+所見は、論点を分けて順序立てて書く力が必要です。中問で「何を聞かれているか」「どの順で答えるか」を丁寧に確認することが、所見対策につながります。
 
-            **4. 読むだけで終わらせず、再現する**  
-            論点を読んで理解したつもりになるのではなく、問題文だけを見て、口頭やメモでどこまで再現できるかを確認することが大切です。再現できなかった論点だけを戻って補うと、効率よく定着します。
+**3. 考えるひな形を持っておく**  
+たとえば次の流れで考えると、答案を作りやすくなります。  
+- 制度趣旨・背景  
+- 現状の課題  
+- アクチュアリーとしての考え方  
+- 実務上の留意点  
+- 今後の方向性
 
-            **5. 目的は“丸暗記”ではなく“答案の軸を作ること”**  
-            本番では完全一致の表現よりも、出題意図に沿って論点の軸を外さずに書けることが大事です。年度ごとの内容を暗記しつつ、そこから共通の型を抜き出して、自分の答案の骨格にしていくイメージで進めるのがおすすめです。
+**4. 問題文→論点、論点→本文の往復をする**  
+問題文を見て論点を言えるか、論点を見て本文の骨子を組み立てられるかを確認すると定着が進みます。
+
+**5. 完璧より再現性を重視する**  
+毎回同じ型で一定水準まで書ける状態を目指すと、本番で安定します。
             """
         )
         return
 
-    if shoken_df.empty:
-        st.info("shoken.csv が見つからないため、所見データを表示できません。")
-        return
-
-    for col in shoken_df.columns:
-        shoken_df[col] = shoken_df[col].fillna("").astype(str).str.strip()
-
-    required_cols = ["年度", "問題文"]
-    missing = [col for col in required_cols if col not in shoken_df.columns]
-    if missing:
-        st.warning(f"shoken.csv に必要な列がありません: {', '.join(missing)}")
-        return
-
-    year = selected.replace("年度", "")
-    year_df = shoken_df[shoken_df["年度"] == year].copy()
-
+    year_df = shoken_df[shoken_df["年度表示"] == selected].reset_index(drop=True)
     if year_df.empty:
-        st.info(f"{selected} のデータはまだありません。")
+        available = sorted([x for x in shoken_df["年度表示"].unique().tolist() if x])
+        st.warning(f"{selected} のデータが見つかりません。読み込めた年度: {', '.join(available) if available else 'なし'}")
         return
 
-    if "問題番号" in year_df.columns:
-        year_df["__sort_num"] = pd.to_numeric(
-            year_df["問題番号"].astype(str).str.extract(r"(\d+)")[0],
-            errors="coerce",
-        ).fillna(9999)
-    else:
-        year_df["__sort_num"] = 9999
-
-    if "問題種別" in year_df.columns:
-        year_df["__sort_type"] = year_df["問題種別"].map(lambda x: question_type_sort_key(x)[0])
-    else:
-        year_df["__sort_type"] = 9
-
-    if "id" not in year_df.columns:
-        year_df["id"] = year_df.index.astype(str)
-
-    year_df = year_df.sort_values(by=["__sort_num", "__sort_type", "id"]).reset_index(drop=True)
-
-    st.markdown(f"### {selected}")
-    st.caption(f"{len(year_df)}件")
-
-    for idx, (_, row) in enumerate(year_df.iterrows(), start=1):
-        title_parts = []
-        if str(row.get("問題番号", "")).strip():
-            title_parts.append(str(row.get("問題番号", "")).strip())
-        if str(row.get("問題種別", "")).strip():
-            title_parts.append(str(row.get("問題種別", "")).strip())
-        title = " | ".join(title_parts) if title_parts else f"{idx}件目"
-
-        with st.expander(title, expanded=(idx == 1)):
+    for i, (_, row) in enumerate(year_df.iterrows(), start=1):
+        with st.expander(f"{i}. 問題", expanded=(i == 1)):
             st.markdown("**問題文**")
             render_multiline_text(row.get("問題文", ""))
-
             st.markdown("**論点**")
-            point_text = str(row.get("論点", "")).strip() if "論点" in year_df.columns else ""
-
-            if point_text:
-                render_multiline_text(point_text)
-            else:
-                st.info("論点はまだ登録されていません。")
+            render_multiline_text(row.get("論点", ""))
 
 def main():
     ensure_state()
