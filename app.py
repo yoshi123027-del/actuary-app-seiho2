@@ -515,7 +515,14 @@ def format_question_label(row: pd.Series) -> str:
         parts.append(str(row["問題種別"]))
     if str(row.get("問題番号", "")).strip():
         parts.append(str(row["問題番号"]))
-    return " / ".join(parts) if parts else str(row.get("id", ""))
+    # Streamlit serializes selectbox values through their displayed labels.
+    # Labels such as "第1章 / 小問" can occur for several rows, causing a rerun
+    # (including an answer-button click) to resolve to a different question.
+    # Always include the unique question ID so every displayed option is unique.
+    question_id = str(row.get("id", "")).strip()
+    if question_id:
+        parts.append(f"ID {question_id}")
+    return " / ".join(parts) if parts else question_id
 
 
 def render_dashboard(df: pd.DataFrame):
