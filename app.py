@@ -18,6 +18,7 @@ QUESTION_FILE = "questions_normalized.csv"
 SHOKEN_FILE = "shoken.csv"
 JST = ZoneInfo("Asia/Tokyo")
 LOCAL_STORAGE_KEY = "actuary_app_user_state_v2"
+QUESTION_SELECTOR_KEY = "question_selector_id"
 MENU_OPTIONS = [
     "ホーム",
     "今日の課題",
@@ -299,10 +300,15 @@ def pick_home_recommendation(df: pd.DataFrame):
     return df.iloc[0], "おすすめ"
 
 
+def set_current_question(question_id: str):
+    st.session_state["current_id"] = str(question_id)
+    st.session_state[QUESTION_SELECTOR_KEY] = str(question_id)
+    st.session_state["show_answer"] = False
+
+
 def go_to_question(question_id: str, target_menu: str):
     st.session_state["main_menu"] = target_menu
-    st.session_state["current_id"] = str(question_id)
-    st.session_state["show_answer"] = False
+    set_current_question(question_id)
 
 
 def previous_action_text(question_id: str) -> str:
@@ -332,16 +338,26 @@ def toggle_review_flag_callback(question_id: str):
     toggle_review_flag(question_id)
 
 
+def toggle_answer_callback(question_id: str):
+    if str(st.session_state.get("current_id")) == str(question_id):
+        st.session_state["show_answer"] = not st.session_state.get("show_answer", False)
+
+
+def select_question_callback():
+    selected_id = st.session_state.get(QUESTION_SELECTOR_KEY)
+    if selected_id is not None:
+        st.session_state["current_id"] = str(selected_id)
+        st.session_state["show_answer"] = False
+
+
 def go_prev_callback(valid_ids: list[str], current_index_zero: int):
     if current_index_zero > 0:
-        st.session_state["current_id"] = valid_ids[current_index_zero - 1]
-        st.session_state["show_answer"] = False
+        set_current_question(valid_ids[current_index_zero - 1])
 
 
 def go_next_callback(valid_ids: list[str], current_index_zero: int):
     if current_index_zero < len(valid_ids) - 1:
-        st.session_state["current_id"] = valid_ids[current_index_zero + 1]
-        st.session_state["show_answer"] = False
+        set_current_question(valid_ids[current_index_zero + 1])
 
 
 def filter_dataframe(df: pd.DataFrame, *, chapter="すべて", qtype="すべて", year="すべて", weekday_group="すべて"):
@@ -380,7 +396,8 @@ def render_question_card(row: pd.Series, valid_ids: list[str], current_index_zer
         toggle_label,
         key=f"toggle_answer_{qid}",
         use_container_width=True,
-        on_click=lambda: st.session_state.__setitem__("show_answer", not st.session_state.get("show_answer", False)),
+        on_click=toggle_answer_callback,
+        args=(qid,),
     )
 
     if st.session_state.get("show_answer", False):
@@ -462,18 +479,22 @@ def render_problem_area(filtered: pd.DataFrame, explanation_col: str | None):
 
     valid_ids = filtered["id"].astype(str).tolist()
     if st.session_state["current_id"] not in valid_ids:
-        st.session_state["current_id"] = valid_ids[0]
-        st.session_state["show_answer"] = False
+        set_current_question(valid_ids[0])
 
-    selected_id = st.selectbox(
+    # Keep the selectbox and the navigation callbacks on one source of truth.
+    # Without this synchronization, Streamlit can restore the selectbox's old
+    # widget value on a rerun and overwrite the question selected by a button.
+    if st.session_state.get(QUESTION_SELECTOR_KEY) != st.session_state["current_id"]:
+        st.session_state[QUESTION_SELECTOR_KEY] = st.session_state["current_id"]
+
+    st.selectbox(
         "問題を選択",
         valid_ids,
         index=valid_ids.index(st.session_state["current_id"]),
+        key=QUESTION_SELECTOR_KEY,
         format_func=lambda qid: format_question_label(filtered[filtered["id"].astype(str) == str(qid)].iloc[0]),
+        on_change=select_question_callback,
     )
-    if selected_id != st.session_state["current_id"]:
-        st.session_state["current_id"] = selected_id
-        st.session_state["show_answer"] = False
 
     row = filtered[filtered["id"].astype(str) == str(st.session_state["current_id"])].iloc[0]
     current_index_zero = valid_ids.index(str(st.session_state["current_id"]))
