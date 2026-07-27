@@ -20,9 +20,12 @@ button { cursor: pointer; }
 .eyebrow, .page-heading > span, .textbook > span { display: block; color: #9ed3bb; font-size: 12px; font-weight: 800; letter-spacing: .16em; }
 .site-header h1 { margin: 10px 0 0; font-size: clamp(25px, 4vw, 43px); font-weight: 500; }
 .site-header h1 b { color: #c9f0df; }
-.exam-count { width: 140px; height: 100px; flex: 0 0 auto; display: flex; justify-content: center; align-items: baseline; gap: 5px; border: 1px solid #5e8f7c; border-radius: 16px; background: rgba(255,255,255,.08); }
-.exam-count strong { font-family: Georgia, serif; font-size: 50px; line-height: 100px; }
-.exam-count span { font-size: 13px; }
+.site-header > div:first-child { min-width: 0; }
+.exam-count { width: 140px; height: 100px; padding: 10px 12px; flex: 0 0 auto; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 2px; overflow: hidden; border: 1px solid #5e8f7c; border-radius: 16px; background: rgba(255,255,255,.08); }
+.exam-count > span { color: #c4ddd2; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.exam-count > div { width: 100%; display: flex; justify-content: center; align-items: baseline; gap: 5px; white-space: nowrap; }
+.exam-count strong { font-family: Georgia, serif; font-size: 50px; line-height: 1; }
+.exam-count > div span { font-size: 13px; }
 .main-nav { padding: 0 max(5vw, 24px); display: flex; gap: 4px; overflow-x: auto; background: white; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; }
 .main-nav button { padding: 17px 20px 14px; white-space: nowrap; color: var(--muted); background: transparent; border: 0; border-bottom: 3px solid transparent; }
 .main-nav button.active { color: var(--green); border-bottom-color: var(--green-2); font-weight: 800; }
@@ -32,6 +35,17 @@ main { width: min(1180px, calc(100% - 40px)); margin: 36px auto 80px; }
 .hero p { max-width: 650px; margin: 9px 0 0; color: rgba(212, 232, 223, .64); font-size: 12px; line-height: 1.65; letter-spacing: .01em; }
 .today { color: #aedac6; font-weight: 700; }
 .hero button, .timer button { padding: 14px 22px; flex: 0 0 auto; color: var(--green); background: #d9f1e6; border: 0; border-radius: 10px; font-weight: 800; }
+.daily-cycle-badge { width: fit-content; margin-top: 14px; display: flex; align-items: center; gap: 9px; overflow: hidden; color: #dff4e9; background: rgba(255, 255, 255, .09); border: 1px solid rgba(190, 223, 207, .32); border-radius: 999px; }
+.daily-cycle-badge span { padding: 7px 0 7px 12px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.daily-cycle-badge strong { padding: 7px 12px 7px 9px; color: #ffe7a5; background: rgba(215, 181, 87, .12); border-left: 1px solid rgba(255, 231, 165, .24); font-size: 11px; white-space: nowrap; }
+.hero .daily-task-progress-copy { margin-top: 0; color: #e5f5ed; font-size: 13px; font-weight: 800; }
+.daily-task-button { min-width: 190px; display: flex; align-items: flex-start; flex-direction: column; gap: 3px; text-align: left; box-shadow: 0 10px 28px rgba(5, 28, 20, .18); transition: transform .18s ease, box-shadow .18s ease; }
+.daily-task-button:hover, .daily-task-button:focus-visible { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(5, 28, 20, .24); outline: none; }
+.daily-task-button span { color: #47705f; font-size: 10px; font-weight: 800; }
+.daily-task-button strong { font-size: 14px; }
+.daily-task-button.is-complete { color: #f7f1d8; background: rgba(255, 255, 255, .12); border: 1px solid rgba(230, 204, 123, .5); }
+.daily-task-button.is-complete span { color: #e7cf84; }
+
 .surface, .question-card, .filter-panel, .timer { margin-top: 24px; padding: clamp(22px, 4vw, 38px); background: white; border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
 .surface > h2 { margin-top: 0; }
 .learning-dashboard {
@@ -136,6 +150,18 @@ progress { width: 100%; height: 9px; accent-color: var(--stage-color, var(--gree
 .page-heading > span { color: var(--green-2); }
 .page-heading h2 { margin: 8px 0; font-family: Georgia, "Yu Mincho", serif; font-size: 36px; }
 .page-heading p { color: var(--muted); }
+.today-task-heading > p { max-width: 720px; line-height: 1.75; }
+.today-task-meter { max-width: 620px; margin-top: 18px; padding: 14px 16px; background: #f4f8f5; border: 1px solid #d9e7df; border-radius: 11px; }
+.today-task-meter > div:first-child { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.today-task-meter > div:first-child span { color: var(--muted); font-size: 12px; font-weight: 800; }
+.today-task-meter > div:first-child strong { color: var(--green-2); font-size: 14px; }
+.today-task-track { width: 100%; height: 8px; margin-top: 9px; overflow: hidden; background: #dfe8e3; border-radius: 999px; }
+.today-task-track i { height: 100%; display: block; background: linear-gradient(90deg, #76ad8e, #23634c); border-radius: inherit; transition: width .3s ease; }
+.today-task-meter small { display: block; margin-top: 8px; color: var(--muted); font-size: 10px; text-align: right; }
+.today-task-meter.is-complete { background: #fffaf0; border-color: #dfc572; }
+.today-task-meter.is-complete .today-task-track i { background: linear-gradient(90deg, #2d7b55, #c79a32); }
+.today-task-meter.is-complete small { color: #76580f; font-weight: 800; }
+
 .filter-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .filter-panel label, .question-toolbar label { color: var(--muted); font-size: 13px; font-weight: 700; }
 .filter-panel select, .filter-panel input, .question-toolbar select { width: 100%; margin-top: 7px; padding: 12px; color: var(--ink); background: #fafbf9; border: 1px solid #cfd9d3; border-radius: 8px; }
@@ -175,8 +201,16 @@ footer { padding: 34px; color: #9cb3aa; text-align: center; background: var(--gr
 
 @media (max-width: 720px) {
   .site-header { min-height: 140px; padding: 28px 20px; }
-  .exam-count { width: 90px; height: 76px; }
-  .exam-count strong { font-size: 36px; line-height: 76px; }
+  .exam-count { width: 96px; height: 80px; padding: 8px; border-radius: 13px; }
+  .exam-count > span { font-size: 9px; }
+  .exam-count strong { font-size: 34px; line-height: 1; }
+  .exam-count > div span { font-size: 10px; }
+  .daily-cycle-badge { margin-top: 11px; gap: 6px; }
+  .daily-cycle-badge span { padding-left: 9px; font-size: 9px; }
+  .daily-cycle-badge strong { padding-right: 9px; padding-left: 6px; font-size: 9px; }
+  .hero .daily-task-progress-copy { font-size: 12px; }
+  .daily-task-button { min-width: 0; }
+  .today-task-meter { padding: 12px; }
   main { width: min(100% - 24px, 1180px); margin-top: 18px; }
   .hero { align-items: flex-start; flex-direction: column; }
   .hero button { width: 100%; }
