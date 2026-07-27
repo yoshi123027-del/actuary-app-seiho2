@@ -442,8 +442,7 @@ function Dashboard({ questions, progress, onOpenCaution, onOpenReview, onOpenCha
       </div>
       <p className="motivation-message">{stage.message}</p>
       <div className="stats">
-        <Stat value={questions.length} label="全問題" />
-        <Stat value={understood} label="理解" tone="green" />
+        <Stat value={`${understood} / ${questions.length}`} label="理解／全問題" tone="understanding" />
         <Stat value={caution} label="要注意" tone="caution" icon="!" onClick={onOpenCaution} disabled={caution === 0} />
         <Stat value={review} label="後で復習" tone="review" icon="↺" onClick={onOpenReview} disabled={review === 0} />
       </div>
