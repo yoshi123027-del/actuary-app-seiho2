@@ -81,13 +81,6 @@ const STUDY_VIEW_OPTIONS = {
   monthly: { label: "月次", periods: 12 },
 };
 
-const STUDY_MILESTONES = [
-  { label: "基礎固め", months: "1–6月", message: "基本論点を確実に理解し、学習の土台を整える時期です。" },
-  { label: "演習強化", months: "7–9月", message: "演習量を増やし、要注意問題を少しずつ減らしていく時期です。" },
-  { label: "総仕上げ", months: "10–11月", message: "弱点の解き直しと本番形式の演習で、得点力を仕上げる時期です。" },
-  { label: "試験本番", months: "12月", message: "積み上げた力を落ち着いて答案に変える時期です。" },
-];
-
 function utcDateKey(date) {
   return date.toISOString().slice(0, 10);
 }
@@ -514,7 +507,7 @@ function QuestionQueue({ rows, currentId, setCurrentId, progress, rate, toggleRe
     </>
   );
 }
-function StudyHistory({ dailySeconds, now, examDate }) {
+function StudyHistory({ dailySeconds, now }) {
   const [viewMode, setViewMode] = useState("monthly");
   const currentYear = Number(japanDateKey(now).slice(0, 4));
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -523,25 +516,12 @@ function StudyHistory({ dailySeconds, now, examDate }) {
   const todaySeconds = Number(dailySeconds[todayKey]) || 0;
 
   const currentDay = new Date(now + 9 * 60 * 60 * 1000);
-  const currentMonth = currentDay.getUTCMonth() + 1;
   const monthStart = utcDateKey(new Date(Date.UTC(currentDay.getUTCFullYear(), currentDay.getUTCMonth(), 1)));
   const monthEnd = utcDateKey(new Date(Date.UTC(currentDay.getUTCFullYear(), currentDay.getUTCMonth() + 1, 0)));
   const yearStart = `${currentYear}-01-01`;
   const yearEnd = `${currentYear}-12-31`;
   const monthlySeconds = sumStudySeconds(dailySeconds, monthStart, monthEnd);
   const yearlySeconds = sumStudySeconds(dailySeconds, yearStart, yearEnd);
-
-  const examTimestamp = new Date(examDate).getTime();
-  const examInJapan = new Date(examTimestamp + 9 * 60 * 60 * 1000);
-  const examYear = examInJapan.getUTCFullYear();
-  const examMonth = examInJapan.getUTCMonth() + 1;
-  const examDay = examInJapan.getUTCDate();
-  const remainingDays = Math.max(0, Math.ceil((examTimestamp - now) / 86400000));
-  let milestoneIndex = 0;
-  if (currentYear > examYear || (currentYear === examYear && currentMonth >= 12)) milestoneIndex = 3;
-  else if (currentYear < examYear || currentMonth <= 6) milestoneIndex = 0;
-  else if (currentMonth <= 9) milestoneIndex = 1;
-  else milestoneIndex = 2;
 
   const periods = buildStudyPeriods(viewMode, dailySeconds, now, selectedYear);
   const maxSeconds = Math.max(60, ...periods.map((period) => period.seconds));
@@ -579,56 +559,25 @@ function StudyHistory({ dailySeconds, now, examDate }) {
           <p>週次・月次では、選択した年の1月から12月まで確認できます。</p>
         </div>
       </div>
-
-      <div className="exam-roadmap">
-        <div className="exam-roadmap-head">
-          <div>
-            <span>DECEMBER GOAL</span>
-            <strong>12月{examDay}日、本番へ</strong>
-            <p>{STUDY_MILESTONES[milestoneIndex].message}</p>
-          </div>
-          <b>{now < examTimestamp ? `あと${remainingDays}日` : "本番当日"}</b>
-        </div>
-        <div className="exam-roadmap-steps" aria-label="試験本番までの学習ロードマップ">
-          {STUDY_MILESTONES.map((milestone, index) => (
-            <div
-              className={`exam-roadmap-step ${index < milestoneIndex ? "is-complete" : ""} ${index === milestoneIndex ? "is-current" : ""}`}
-              key={milestone.label}
-              aria-current={index === milestoneIndex ? "step" : undefined}
-            >
-              <strong>{milestone.label}</strong>
-              <span>{milestone.months}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div className="study-summary">
         <Stat value={formatCompactStudyDuration(todaySeconds)} label="今日" tone="study-today" />
         <Stat value={formatCompactStudyDuration(monthlySeconds)} label="今月" />
         <Stat value={formatCompactStudyDuration(yearlySeconds)} label="今年" tone="study-year" />
       </div>
       <div
-        className={`study-chart study-chart-${viewMode}`}
+        className="study-chart"
         aria-label={`${viewLabel}で集計した勉強時間`}
         style={{ "--study-period-count": periods.length }}
       >
         {periods.map((period) => {
           const height = period.seconds ? Math.max(8, period.seconds / maxSeconds * 100) : 2;
-          const periodMonth = viewMode === "monthly" ? Number(period.label.replace("月", "")) : null;
-          const isExamMonth = viewMode === "monthly" && Number(selectedYear) === examYear && periodMonth === examMonth;
-          const isCurrentMonth = viewMode === "monthly" && Number(selectedYear) === currentYear && periodMonth === currentMonth;
           return (
-            <div
-              className={`study-bar-column ${isExamMonth ? "is-exam-month" : ""} ${isCurrentMonth ? "is-current-month" : ""}`}
-              key={period.key}
-              title={`${period.title}: ${formatStudyDuration(period.seconds)}`}
-            >
+            <div className="study-bar-column" key={period.key} title={`${period.title}: ${formatStudyDuration(period.seconds)}`}>
               <div className="study-bar-track">
                 <span className="study-bar-value">{formatStudyBarValue(period.seconds)}</span>
                 <div className="study-bar" style={{ height: `${height}%` }} />
               </div>
-              <span className="study-bar-label">{period.label}{isExamMonth && <small>本番</small>}</span>
+              <span className="study-bar-label">{period.label}</span>
             </div>
           );
         })}
@@ -770,7 +719,7 @@ export default function Home() {
               <div><span>今日の勉強時間</span><strong>{formatClock(studyTimer.todaySeconds)}</strong></div>
               <button onClick={studyTimer.toggle}>{studyTimer.running ? "学習終了" : "学習開始"}</button>
             </section>
-            <StudyHistory dailySeconds={studyTimer.dailySeconds} now={studyTimer.now} examDate={appConfig.examDate} />
+            <StudyHistory dailySeconds={studyTimer.dailySeconds} now={studyTimer.now} />
           </>
         )}
 
