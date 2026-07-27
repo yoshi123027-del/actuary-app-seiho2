@@ -255,54 +255,97 @@ function useStudyTimer(storageKey) {
   const timerStorageKey = `${storageKey}_study_time_v1`;
   const [dailySeconds, setDailySeconds] = useState({});
   const [activeSince, setActiveSince] = useState(null);
-  const [ready, setReady] = useState(false);
   const [now, setNow] = useState(0);
+  const dailySecondsRef = useRef({});
+  const activeSinceRef = useRef(null);
 
   useEffect(() => {
-    const current = Date.now();
-    setNow(current);
+    let savedDays = {};
     try {
       const saved = JSON.parse(localStorage.getItem(timerStorageKey) || "null");
-      if (saved && typeof saved === "object") {
-        setDailySeconds(saved.dailySeconds || {});
-        setActiveSince(Number.isFinite(saved.activeSince) ? saved.activeSince : null);
-      }
+      if (saved && typeof saved === "object") savedDays = saved.dailySeconds || {};
     } catch {
       // 壊れた保存値は無視する。
     }
-    setReady(true);
+
+    dailySecondsRef.current = savedDays;
+    setDailySeconds(savedDays);
+
+    const persist = (days) => {
+      localStorage.setItem(timerStorageKey, JSON.stringify({ dailySeconds: days }));
+    };
+
+    const start = (timestamp) => {
+      if (activeSinceRef.current == null) {
+        activeSinceRef.current = timestamp;
+        setActiveSince(timestamp);
+      }
+      setNow(timestamp);
+    };
+
+    const commit = (timestamp, keepRunning = false) => {
+      const startedAt = activeSinceRef.current;
+      let nextDays = dailySecondsRef.current;
+      if (startedAt != null && timestamp > startedAt) {
+        nextDays = addStudyInterval(nextDays, startedAt, timestamp);
+        dailySecondsRef.current = nextDays;
+        setDailySeconds(nextDays);
+        persist(nextDays);
+      }
+      const nextActive = keepRunning ? timestamp : null;
+      activeSinceRef.current = nextActive;
+      setActiveSince(nextActive);
+      setNow(timestamp);
+    };
+
+    const handleVisibility = () => {
+      const current = Date.now();
+      if (document.visibilityState === "visible") start(current);
+      else commit(current);
+    };
+    const handlePageHide = () => commit(Date.now());
+    const handlePageShow = () => {
+      if (document.visibilityState === "visible") start(Date.now());
+    };
+
+    const current = Date.now();
+    if (document.visibilityState === "visible") start(current);
+    else setNow(current);
+
+    const intervalId = setInterval(() => {
+      const tick = Date.now();
+      setNow(tick);
+      const startedAt = activeSinceRef.current;
+      if (startedAt != null && tick - startedAt >= 30000) commit(tick, true);
+    }, 1000);
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
+      const stoppedAt = Date.now();
+      const startedAt = activeSinceRef.current;
+      if (startedAt != null && stoppedAt > startedAt) {
+        const nextDays = addStudyInterval(dailySecondsRef.current, startedAt, stoppedAt);
+        dailySecondsRef.current = nextDays;
+        persist(nextDays);
+        activeSinceRef.current = null;
+      }
+    };
   }, [timerStorageKey]);
 
-  useEffect(() => {
-    if (!ready) return;
-    localStorage.setItem(timerStorageKey, JSON.stringify({ dailySeconds, activeSince }));
-  }, [activeSince, dailySeconds, ready, timerStorageKey]);
-
-  useEffect(() => {
-    if (!activeSince) return undefined;
-    const intervalId = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(intervalId);
-  }, [activeSince]);
-
   const displayedDailySeconds = useMemo(
-    () => activeSince && now ? addStudyInterval(dailySeconds, activeSince, now) : dailySeconds,
+    () => activeSince != null && now ? addStudyInterval(dailySeconds, activeSince, now) : dailySeconds,
     [activeSince, dailySeconds, now],
   );
 
-  const toggle = () => {
-    const current = Date.now();
-    setNow(current);
-    if (activeSince) {
-      setDailySeconds((days) => addStudyInterval(days, activeSince, current));
-      setActiveSince(null);
-    } else {
-      setActiveSince(current);
-    }
-  };
-
   return {
-    running: Boolean(activeSince),
-    toggle,
+    running: activeSince != null,
     dailySeconds: displayedDailySeconds,
     todaySeconds: displayedDailySeconds[japanDateKey(now || Date.now())] || 0,
     now: now || Date.now(),
@@ -565,7 +608,7 @@ function StudyHistory({ dailySeconds, now }) {
         <Stat value={formatCompactStudyDuration(yearlySeconds)} label="今年" tone="study-year" />
       </div>
       <div
-        className="study-chart"
+        className={`study-chart ${viewMode === "monthly" ? "study-chart-monthly" : ""}`}
         aria-label={`${viewLabel}で集計した勉強時間`}
         style={{ "--study-period-count": periods.length }}
       >
@@ -715,9 +758,12 @@ export default function Home() {
               onOpenReview={() => openQuestion(reviewRows[0]?.id || "", "後で復習問題")}
               onOpenChapter={openChapter}
             /></section>
-            <section className="surface timer">
+            <section className="surface timer automatic-timer">
               <div><span>今日の勉強時間</span><strong>{formatClock(studyTimer.todaySeconds)}</strong></div>
-              <button onClick={studyTimer.toggle}>{studyTimer.running ? "学習終了" : "学習開始"}</button>
+              <div className={`auto-timer-status ${studyTimer.running ? "is-running" : ""}`}>
+                <span><i aria-hidden="true" />{studyTimer.running ? "自動計測中" : "一時停止中"}</span>
+                <small>この画面を表示している時間を自動保存</small>
+              </div>
             </section>
             <StudyHistory dailySeconds={studyTimer.dailySeconds} now={studyTimer.now} />
           </>
