@@ -422,15 +422,15 @@ function understandingStage(percent) {
     return { key: "complete", label: "完全理解", icon: "★", message: "全問題を理解済みにしました。積み上げた力を、定期的な復習で定着させましょう。" };
   }
   if (percent >= 75) {
-    return { key: "final", label: "仕上げ", icon: "◆", message: "ゴールが見えてきました。要注意問題を解き直して、理解の穴を埋めましょう。" };
+    return { key: "final", label: "仕上げ", icon: "", message: "ゴールが見えてきました。要注意問題を解き直して、理解の穴を埋めましょう。" };
   }
   if (percent >= 50) {
-    return { key: "steady", label: "折り返し突破", icon: "▲", message: "半分を超えました。この調子で、理解済みの範囲を着実に広げましょう。" };
+    return { key: "steady", label: "折り返し突破", icon: "", message: "半分を超えました。この調子で、理解済みの範囲を着実に広げましょう。" };
   }
   if (percent >= 25) {
-    return { key: "growing", label: "成長中", icon: "●", message: "学習のペースができています。一問ずつ理解に変えていきましょう。" };
+    return { key: "growing", label: "成長中", icon: "", message: "学習のペースができています。一問ずつ理解に変えていきましょう。" };
   }
-  return { key: "start", label: "スタート", icon: "○", message: "最初の一歩です。理解済みを増やして、学習の土台を作りましょう。" };
+  return { key: "start", label: "スタート", icon: "", message: "最初の一歩です。理解済みを増やして、学習の土台を作りましょう。" };
 }
 
 function Dashboard({ questions, progress, onOpenCaution, onOpenReview, onOpenChapter }) {
@@ -440,13 +440,19 @@ function Dashboard({ questions, progress, onOpenCaution, onOpenReview, onOpenCha
   const percent = questions.length ? Math.round(understood / questions.length * 100) : 0;
   const remaining = Math.max(0, questions.length - understood);
   const stage = understandingStage(percent);
+  const goldProgress = Math.max(0, Math.min(1, (percent - 50) / 50));
+  const dashboardStyle = {
+    "--gold-progress": goldProgress,
+    "--gold-soft": Number((goldProgress * 0.72).toFixed(3)),
+    "--gold-glow": Number((goldProgress * 0.38).toFixed(3)),
+  };
   const chapters = [...new Set(questions.map((q) => q.章).filter(Boolean))].sort((a, b) => natural(a) - natural(b));
 
   return (
-    <div className={`learning-dashboard stage-${stage.key}`}>
+    <div className={`learning-dashboard stage-${stage.key}`} style={dashboardStyle}>
       <div className="dashboard-status">
         <div><span>UNDERSTANDING LEVEL</span><h3>{stage.label}</h3></div>
-        <strong><b>{stage.icon}</b>{percent}%</strong>
+        <strong>{stage.icon && <b>{stage.icon}</b>}{percent}%</strong>
       </div>
       <p className="motivation-message">{stage.message}</p>
       <div className="stats">
