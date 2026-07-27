@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import answerRecords from "../../shoken-answers.mjs";
 
 const sourceUrl = new URL("../../shoken.csv", import.meta.url);
 const outputUrl = new URL("../public/shoken.json", import.meta.url);
@@ -53,15 +54,25 @@ function parseCsv(text) {
 }
 
 const csv = await readFile(sourceUrl, "utf8");
-const records = parseCsv(csv);
-const requiredHeaders = ["年度", "問題番号", "問題文", "論点"];
+const sourceRecords = parseCsv(csv);
+const requiredHeaders = ["年度", "問題番号", "問題文"];
 const missingHeaders = requiredHeaders.filter(
-  (header) => !Object.prototype.hasOwnProperty.call(records[0] || {}, header),
+  (header) => !Object.prototype.hasOwnProperty.call(sourceRecords[0] || {}, header),
 );
 
 if (missingHeaders.length) {
   throw new Error("shoken.csv に必要な列がありません: " + missingHeaders.join(", "));
 }
 
+const records = sourceRecords.map((record) => {
+  const id = String(record.id || "");
+  const answer = answerRecords[id];
+  if (!answer?.フレームワークを用いた論点整理 || !answer?.合格レベル答案) {
+    throw new Error(`所見答案データが未登録です: id=${id}`);
+  }
+  const { 論点: _discardedOriginalPoints, ...base } = record;
+  return { ...base, ...answer };
+});
+
 await writeFile(outputUrl, JSON.stringify(records, null, 2) + "\n", "utf8");
-console.log("shoken.csv から " + records.length + " 件を同期しました。");
+console.log("shoken.csv と合格答案から " + records.length + " 件を同期しました。");
