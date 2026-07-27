@@ -150,6 +150,16 @@ progress { width: 100%; height: 9px; accent-color: var(--stage-color, var(--gree
 .page-heading > span { color: var(--green-2); }
 .page-heading h2 { margin: 8px 0; font-family: Georgia, "Yu Mincho", serif; font-size: 36px; }
 .page-heading p { color: var(--muted); }
+
+.assignment-mode-switch { width: fit-content; margin-top: 14px; padding: 4px; display: grid; grid-template-columns: auto repeat(2, max-content); align-items: center; gap: 4px; color: var(--muted); background: #f3f7f4; border: 1px solid #d8e4dd; border-radius: 11px; }
+.assignment-mode-switch > span { padding: 0 8px; font-size: 10px; font-weight: 900; letter-spacing: .08em; white-space: nowrap; }
+.assignment-mode-switch button, .hero .assignment-mode-switch button { width: auto; min-width: 0; padding: 7px 11px; color: #4d655a; background: transparent; border: 1px solid transparent; border-radius: 7px; box-shadow: none; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.assignment-mode-switch button.active, .hero .assignment-mode-switch button.active { color: white; background: var(--green-2); border-color: var(--green-2); }
+.assignment-mode-switch.on-dark { color: #cbe5d9; background: rgba(255, 255, 255, .07); border-color: rgba(203, 229, 217, .22); }
+.assignment-mode-switch.on-dark button, .hero .assignment-mode-switch.on-dark button { color: #dceee6; }
+.assignment-mode-switch.on-dark button.active, .hero .assignment-mode-switch.on-dark button.active { color: #17332b; background: #d9f1e6; border-color: #d9f1e6; }
+.today-task-heading .assignment-mode-switch { margin-top: 14px; }
+
 .today-task-heading > p { max-width: 720px; line-height: 1.75; }
 .today-task-meter { max-width: 620px; margin-top: 18px; padding: 14px 16px; background: #f4f8f5; border: 1px solid #d9e7df; border-radius: 11px; }
 .today-task-meter > div:first-child { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
@@ -210,6 +220,9 @@ footer { padding: 34px; color: #9cb3aa; text-align: center; background: var(--gr
   .daily-cycle-badge strong { padding-right: 9px; padding-left: 6px; font-size: 9px; }
   .hero .daily-task-progress-copy { font-size: 12px; }
   .daily-task-button { min-width: 0; }
+  .assignment-mode-switch { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .assignment-mode-switch > span { grid-column: 1 / -1; padding: 2px 4px 0; }
+  .assignment-mode-switch button, .hero .assignment-mode-switch button { width: 100%; padding: 8px 6px; }
   .today-task-meter { padding: 12px; }
   main { width: min(100% - 24px, 1180px); margin-top: 18px; }
   .hero { align-items: flex-start; flex-direction: column; }
