@@ -301,7 +301,7 @@ function useStudyTimer(storageKey) {
   };
 }
 
-function Stat({ value, label, tone = "", onClick, disabled = false }) {
+function Stat({ value, label, tone = "", onClick, disabled = false, icon = "" }) {
   const Tag = onClick ? "button" : "div";
   return (
     <Tag
@@ -310,6 +310,7 @@ function Stat({ value, label, tone = "", onClick, disabled = false }) {
       disabled={onClick ? disabled : undefined}
       type={onClick ? "button" : undefined}
     >
+      {icon && <span className="stat-icon" aria-hidden="true">{icon}</span>}
       <strong>{value}</strong>
       <span>{label}</span>
       {onClick && <small>{disabled ? "該当する問題はありません" : "クリックして演習する →"}</small>}
@@ -443,8 +444,8 @@ function Dashboard({ questions, progress, onOpenCaution, onOpenReview, onOpenCha
       <div className="stats">
         <Stat value={questions.length} label="全問題" />
         <Stat value={understood} label="理解" tone="green" />
-        <Stat value={caution} label="要注意" tone="yellow" onClick={onOpenCaution} disabled={caution === 0} />
-        <Stat value={review} label="後で復習" tone="red" onClick={onOpenReview} disabled={review === 0} />
+        <Stat value={caution} label="要注意" tone="caution" icon="!" onClick={onOpenCaution} disabled={caution === 0} />
+        <Stat value={review} label="後で復習" tone="review" icon="↺" onClick={onOpenReview} disabled={review === 0} />
       </div>
       <div className="progress-block">
         <div><span>全体理解度</span><strong>{percent}%</strong></div>
@@ -546,9 +547,9 @@ function StudyHistory({ dailySeconds, now }) {
         </div>
       </div>
       <div className="study-summary">
-        <Stat value={formatStudyDuration(todaySeconds)} label="今日" tone="green" />
+        <Stat value={formatStudyDuration(todaySeconds)} label="今日" tone="study-today" />
         <Stat value={formatStudyDuration(monthlySeconds)} label="今月の累計勉強時間" />
-        <Stat value={formatStudyDuration(yearlySeconds)} label="今年の勉強時間" tone="yellow" />
+        <Stat value={formatStudyDuration(yearlySeconds)} label="今年の勉強時間" tone="study-year" />
       </div>
       <div
         className="study-chart"
