@@ -95,10 +95,10 @@ progress { width: 100%; height: 9px; accent-color: var(--stage-color, var(--gree
 .study-filter-row { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
 .study-history-tools label { display: flex; align-items: center; color: var(--muted); font-size: 13px; font-weight: 700; white-space: nowrap; }
 .study-history-tools select { min-width: 92px; margin-left: 10px; padding: 8px 28px 8px 10px; color: var(--ink); background: #fafbf9; border: 1px solid #cfd9d3; border-radius: 8px; }
-.study-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.study-summary .stat { min-height: 76px; padding: 11px 14px; background: #fafbfa; border-color: #e7ece9; border-radius: 9px; }
-.study-summary .stat strong { font-size: clamp(21px, 3vw, 27px); }
-.study-summary .stat > span:not(.stat-icon) { margin-top: 3px; font-size: 11px; }
+.study-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.study-summary .stat { min-height: 68px; padding: 10px 12px; background: #fafbfa; border-color: #e7ece9; border-radius: 9px; }
+.study-summary .stat strong { overflow: hidden; font-size: clamp(18px, 2.7vw, 24px); line-height: 1.1; white-space: nowrap; text-overflow: ellipsis; }
+.study-summary .stat > span:not(.stat-icon) { margin-top: 3px; font-size: 10px; }
 .study-summary .stat.study-today { background: #f5faf7; border-color: #dcebe3; }
 .study-summary .stat.study-year { background: #faf9f5; border-color: #ebe7dc; }
 .study-chart { height: 250px; margin-top: 28px; padding: 12px 4px 0; display: grid; grid-template-columns: repeat(var(--study-period-count, 14), minmax(42px, 1fr)); gap: 8px; overflow-x: auto; border-top: 1px solid var(--line); }
@@ -169,7 +169,10 @@ footer { padding: 34px; color: #9cb3aa; text-align: center; background: var(--gr
   .timer { align-items: stretch; flex-direction: column; gap: 16px; }
   .timer button { width: 100%; }
   .section-title { align-items: flex-start; flex-direction: column; gap: 8px; }
-  .study-summary { grid-template-columns: 1fr; }
+  .study-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .study-summary .stat { min-height: 62px; padding: 8px 7px; }
+  .study-summary .stat strong { font-size: clamp(13px, 4vw, 18px); }
+  .study-summary .stat > span:not(.stat-icon) { font-size: 9px; }
   .study-history-tools { width: 100%; align-items: flex-start; }
   .study-filter-row { width: 100%; justify-content: flex-start; }
   .study-history-tools label { justify-content: space-between; width: 100%; }
