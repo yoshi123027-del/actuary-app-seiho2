@@ -17,6 +17,6 @@ npm run dev
 - Build Command: `npm run build`
 - Output Directory: `out`
 
-GitHubの `main` ブランチへ反映されると、同じVercel URLへ自動デプロイできます。
+GitHubの `main` ブランチへ反映されると、同じVercel URLへ自動デプロイできます。`shoken.csv` はビルド時に `vercel/public/shoken.json` へ自動変換されるため、CSVを更新すれば「所見で学ぶ」に反映されます。
 
 学習履歴・自己評価・復習フラグはブラウザのlocalStorageに保存されます。「所見で学ぶ」では2018〜2025年度の問題文と論点を表示します。
