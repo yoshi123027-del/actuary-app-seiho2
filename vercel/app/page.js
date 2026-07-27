@@ -3,21 +3,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { appConfig } from "./config";
 
-const EMPTY_PROGRESS = { ratings: {}, reviewFlags: {}, history: {} };
+const EMPTY_PROGRESS = { ratings: {}, reviewFlags: {}, history: {}, answerViews: {} };
 const DAY_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
 
 const TWO_WEEK_CYCLE_DAYS = 14;
-const TWO_WEEK_CYCLE_START = Date.UTC(2026, 0, 1) / 86400000;
+const TWO_WEEK_CYCLE_START = Date.UTC(2026, 6, 27) / 86400000;
 
-function twoWeekCycleDay(dateKey) {
+function twoWeekCycleGroup(dateKey) {
   const [year, month, day] = String(dateKey).split("-").map(Number);
   const serial = Date.UTC(year, month - 1, day) / 86400000;
   const offset = Math.floor(serial - TWO_WEEK_CYCLE_START);
-  return ((offset % TWO_WEEK_CYCLE_DAYS) + TWO_WEEK_CYCLE_DAYS) % TWO_WEEK_CYCLE_DAYS;
+  return ((offset % TWO_WEEK_CYCLE_DAYS) + TWO_WEEK_CYCLE_DAYS) % TWO_WEEK_CYCLE_DAYS + 1;
 }
 
-function ratedOnDate(progress, id, dateKey) {
-  const timestamp = Date.parse(progress.history[id]?.lastRatedAt || "");
+function viewedOnDate(progress, id, dateKey) {
+  const timestamp = Date.parse(progress.answerViews[id] || "");
   return Number.isFinite(timestamp) && japanDateKey(timestamp) === dateKey;
 }
 
@@ -234,6 +234,7 @@ function useProgress(storageKey) {
           ratings: saved.ratings || {},
           reviewFlags: saved.reviewFlags || saved.review_flags || {},
           history: saved.history || {},
+          answerViews: saved.answerViews || saved.answer_views || {},
         });
       }
     } catch {
@@ -263,7 +264,12 @@ function useProgress(storageKey) {
     reviewFlags: { ...current.reviewFlags, [id]: !current.reviewFlags[id] },
   }));
 
-  return { progress, rate, toggleReview };
+  const markAnswerViewed = (id) => setProgress((current) => ({
+    ...current,
+    answerViews: { ...current.answerViews, [id]: new Date().toISOString() },
+  }));
+
+  return { progress, rate, toggleReview, markAnswerViewed };
 }
 
 function useStudyTimer(storageKey) {
@@ -399,7 +405,17 @@ function Filters({ questions, filters, setFilters, showKeyword = false }) {
   );
 }
 
-function QuestionCard({ rows, currentId, setCurrentId, progress, rate, toggleReview }) {
+function AssignmentModeSwitch({ mode, onChange, variant = "" }) {
+  return (
+    <div className={`assignment-mode-switch ${variant}`} role="group" aria-label="今日の課題の学習ペース">
+      <span>学習ペース</span>
+      <button type="button" className={mode === "two-week" ? "active" : ""} aria-pressed={mode === "two-week"} onClick={() => onChange("two-week")}>2週間で一周</button>
+      <button type="button" className={mode === "one-week" ? "active" : ""} aria-pressed={mode === "one-week"} onClick={() => onChange("one-week")}>1週間で一周</button>
+    </div>
+  );
+}
+
+function QuestionCard({ rows, currentId, setCurrentId, progress, rate, toggleReview, markAnswerViewed }) {
   const [showAnswerFor, setShowAnswerFor] = useState(null);
   const topRef = useRef(null);
   const index = Math.max(0, rows.findIndex((q) => q.id === currentId));
@@ -447,9 +463,16 @@ function QuestionCard({ rows, currentId, setCurrentId, progress, rate, toggleRev
         type="button"
         className="answer-toggle"
         aria-expanded={showing}
-        onClick={() => setShowAnswerFor(showing ? null : question.id)}
+        onClick={() => {
+          if (showing) {
+            setShowAnswerFor(null);
+          } else {
+            setShowAnswerFor(question.id);
+            markAnswerViewed(question.id);
+          }
+        }}
       >
-        {showing ? "解答を閉じる" : "解答を表示"}
+        {showing ? "解答・解説を閉じる" : "解答・解説を表示"}
       </button>
 
       {showing && (
@@ -555,12 +578,12 @@ function Dashboard({ questions, progress, onOpenCaution, onOpenReview, onOpenCha
   );
 }
 
-function QuestionQueue({ rows, currentId, setCurrentId, progress, rate, toggleReview, eyebrow, title, description, emptyMessage }) {
+function QuestionQueue({ rows, currentId, setCurrentId, progress, rate, toggleReview, markAnswerViewed, eyebrow, title, description, emptyMessage }) {
   return (
     <>
       <div className="page-heading"><span>{eyebrow}</span><h2>{title}</h2><p>{description}（現在{rows.length}問）</p></div>
       {rows.length ? (
-        <QuestionCard rows={rows} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} />
+        <QuestionCard rows={rows} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} markAnswerViewed={markAnswerViewed} />
       ) : <div className="empty queue-complete">{emptyMessage}</div>}
     </>
   );
@@ -693,9 +716,21 @@ export default function Home() {
   const [currentId, setCurrentId] = useState("");
   const [filters, setFilters] = useState({ chapter: "", type: "", year: "", keyword: "" });
   const [loadingError, setLoadingError] = useState("");
-  const { progress, rate, toggleReview } = useProgress(appConfig.storageKey);
+  const { progress, rate, toggleReview, markAnswerViewed } = useProgress(appConfig.storageKey);
   const studyTimer = useStudyTimer(appConfig.storageKey);
   const today = todayInJapan();
+  const assignmentModeStorageKey = `${appConfig.storageKey}_assignment_mode_v1`;
+  const [assignmentMode, setAssignmentMode] = useState("two-week");
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem(assignmentModeStorageKey);
+    if (savedMode === "two-week" || savedMode === "one-week") setAssignmentMode(savedMode);
+  }, [assignmentModeStorageKey]);
+
+  const changeAssignmentMode = (mode) => {
+    setAssignmentMode(mode);
+    localStorage.setItem(assignmentModeStorageKey, mode);
+  };
 
   useEffect(() => {
     fetch("/questions.json")
@@ -726,15 +761,25 @@ export default function Home() {
       && (!keyword || [q.問題文, q.解答, q.解説].join(" ").toLowerCase().includes(keyword));
   }), [questions, filters]);
 
-  const todayCycleDay = twoWeekCycleDay(today.iso);
+  const todayCycleGroup = twoWeekCycleGroup(today.iso);
+  const todayGroupNumbers = assignmentMode === "one-week"
+    ? [Number(today.group), Number(today.group) + 7]
+    : [todayCycleGroup];
   const todayRows = useMemo(
-    () => questions.filter((_, index) => index % TWO_WEEK_CYCLE_DAYS === todayCycleDay),
-    [questions, todayCycleDay],
+    () => questions.filter((question) => todayGroupNumbers.includes(Number(question.曜日グループ))),
+    [questions, assignmentMode, today.group, todayCycleGroup],
   );
-  const todayCompleted = todayRows.filter((q) => ratedOnDate(progress, q.id, today.iso)).length;
+  const todayCompleted = todayRows.filter((q) => viewedOnDate(progress, q.id, today.iso)).length;
   const todayRemaining = Math.max(0, todayRows.length - todayCompleted);
   const todayComplete = todayRows.length > 0 && todayRemaining === 0;
-  const nextTodayQuestion = todayRows.find((q) => !ratedOnDate(progress, q.id, today.iso)) || todayRows[0];
+  const nextTodayQuestion = todayRows.find((q) => !viewedOnDate(progress, q.id, today.iso)) || todayRows[0];
+  const assignmentModeLabel = assignmentMode === "one-week" ? "1週間で全問題を一周" : "2週間で全問題を一周";
+  const assignmentDayLabel = assignmentMode === "one-week"
+    ? `GROUP ${todayGroupNumbers[0]} + ${todayGroupNumbers[1]}`
+    : `GROUP ${todayCycleGroup} / 14`;
+  const assignmentDescription = assignmentMode === "one-week"
+    ? `本日は曜日グループ${todayGroupNumbers[0]}と${todayGroupNumbers[1]}をまとめて復習します。毎日進めると1週間で全問題を一周できます。`
+    : `曜日グループ1〜14を順に進めます。毎日の課題を終えると2週間で全問題を一周できます。`;
 
   const cautionRows = questions.filter((q) => progress.ratings[q.id] === "要注意");
   const reviewRows = questions.filter((q) => progress.reviewFlags[q.id]);
@@ -773,8 +818,9 @@ export default function Home() {
             <section className={`hero daily-hero ${todayComplete ? "is-complete" : "has-pending"}`}>
               <div>
                 <span className="today">{today.iso}（{today.weekday}）</span>
-                <div className="daily-cycle-badge"><span>2週間で全問題を一周</span><strong>DAY {todayCycleDay + 1} / 14</strong></div>
-                <h2>{todayComplete ? "今日の課題、完了です。" : "今日の分を終えて、2週間で一周。"}</h2>
+                <div className="daily-cycle-badge"><span>{assignmentModeLabel}</span><strong>{assignmentDayLabel}</strong></div>
+                <AssignmentModeSwitch mode={assignmentMode} onChange={changeAssignmentMode} variant="on-dark" />
+                <h2>{todayComplete ? "今日の課題、完了です。" : `今日の分を終えて、${assignmentMode === "one-week" ? "1週間" : "2週間"}で一周。`}</h2>
                 <p className="daily-task-progress-copy">
                   {todayComplete
                     ? `本日の${todayRows.length}問を完了しました。`
@@ -811,9 +857,10 @@ export default function Home() {
         {menu === "今日の課題" && (
           <>
             <div className="page-heading today-task-heading">
-              <span>14-DAY STUDY CYCLE · DAY {todayCycleDay + 1} / 14</span>
+              <span>{assignmentMode === "one-week" ? `7-DAY REVIEW · ${assignmentDayLabel}` : `14-DAY STUDY CYCLE · ${assignmentDayLabel}`}</span>
               <h2>今日の課題</h2>
-              <p>全問題を14日間に均等配分しています。毎日の課題を終えると、2週間で全問題を一周できます。</p>
+              <p>{assignmentDescription}</p>
+              <AssignmentModeSwitch mode={assignmentMode} onChange={changeAssignmentMode} />
               <div className={`today-task-meter ${todayComplete ? "is-complete" : ""}`}>
                 <div><span>本日の進捗</span><strong>{todayCompleted} / {todayRows.length}問</strong></div>
                 <div
@@ -829,7 +876,7 @@ export default function Home() {
                 <small>{todayComplete ? "本日の課題を完了しました。" : `今日の残りは${todayRemaining}問です。`}</small>
               </div>
             </div>
-            <QuestionCard rows={todayRows} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} />
+            <QuestionCard rows={todayRows} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} markAnswerViewed={markAnswerViewed} />
           </>
         )}
 
@@ -839,7 +886,7 @@ export default function Home() {
           setCurrentId={setCurrentId}
           progress={progress}
           rate={rate}
-          toggleReview={toggleReview}
+          toggleReview={toggleReview} markAnswerViewed={markAnswerViewed}
           eyebrow="CAUTION REVIEW"
           title="要注意問題を解く"
           description="「要注意」にした問題だけを続けて演習します。理解できたら自己評価を「理解」に変更しましょう。"
@@ -852,16 +899,16 @@ export default function Home() {
           setCurrentId={setCurrentId}
           progress={progress}
           rate={rate}
-          toggleReview={toggleReview}
+          toggleReview={toggleReview} markAnswerViewed={markAnswerViewed}
           eyebrow="REVIEW STOCK"
           title="後で復習する問題"
           description="復習フラグを付けた問題だけを続けて演習します。復習後はフラグを外せます。"
           emptyMessage="復習ストックをすべて完了しました。ホームのダッシュボードから次の学習に進みましょう。"
         />}
 
-        {menu === "章ごとに学ぶ" && <><div className="page-heading"><span>CHAPTER STUDY</span><h2>章ごとに学ぶ</h2><p>章・問題種別・年度で絞り込めます。</p></div><Filters questions={questions} filters={filters} setFilters={setFilters} /><QuestionCard rows={filtered} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} /></>}
+        {menu === "章ごとに学ぶ" && <><div className="page-heading"><span>CHAPTER STUDY</span><h2>章ごとに学ぶ</h2><p>章・問題種別・年度で絞り込めます。</p></div><Filters questions={questions} filters={filters} setFilters={setFilters} /><QuestionCard rows={filtered} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} markAnswerViewed={markAnswerViewed} /></>}
 
-        {menu === "問題検索" && <><div className="page-heading"><span>QUESTION SEARCH</span><h2>問題検索</h2><p>問題文、解答、解説を横断検索できます。</p></div><Filters questions={questions} filters={filters} setFilters={setFilters} showKeyword /><QuestionCard rows={filtered} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} /></>}
+        {menu === "問題検索" && <><div className="page-heading"><span>QUESTION SEARCH</span><h2>問題検索</h2><p>問題文、解答、解説を横断検索できます。</p></div><Filters questions={questions} filters={filters} setFilters={setFilters} showKeyword /><QuestionCard rows={filtered} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} markAnswerViewed={markAnswerViewed} /></>}
 
         {menu === "教科書で学ぶ" && (
           <><div className="page-heading"><span>TEXTBOOK</span><h2>教科書で学ぶ</h2><p>章ごとの簡易まとめを開きます。</p></div>
