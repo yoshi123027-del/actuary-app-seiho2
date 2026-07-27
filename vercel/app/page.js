@@ -683,6 +683,28 @@ function StudyHistory({ dailySeconds, now }) {
   );
 }
 
+function ShokenPoints({ text }) {
+  return (
+    <div className="shoken-points">
+      {String(text || "").split("\n").filter(Boolean).map((line, index) => {
+        if (line.startsWith("【頻出テーマ：")) {
+          return <div className="shoken-frequency" key={index}>{line.slice(1, -1)}</div>;
+        }
+        if (line.startsWith("★")) {
+          return <div className="shoken-repeat" key={index}>{line}</div>;
+        }
+        if (line.startsWith("【")) {
+          return <h3 className="shoken-section-title" key={index}>{line.slice(1, -1)}</h3>;
+        }
+        if (/^[-・]/.test(line)) {
+          return <div className="shoken-point" key={index}><span aria-hidden="true">✓</span><p>{line.replace(/^[-・]\s*/, "")}</p></div>;
+        }
+        return <p className="shoken-point-copy" key={index}>{line}</p>;
+      })}
+    </div>
+  );
+}
+
 function ShokenStudy({ rows }) {
   const options = ["所見の習得方法", "2025年度", "2024年度", "2023年度", "2022年度", "2021年度", "2020年度", "2019年度", "2018年度"];
   const [selected, setSelected] = useState(options[0]);
@@ -703,6 +725,8 @@ function ShokenStudy({ rows }) {
         <section className="surface shoken-guide">
           <h2>所見の習得方法</h2>
           <p>所見は、問題文を見たときに論点を思い出し、一定の型で書けるようにすることが重要です。</p>
+          <div className="shoken-frequency">頻出テーマは「同じ問いに同じ骨格」で答える</div>
+          <p>黄色の「同テーマで毎回書く」は、年度が変わっても先に答案へ置きたい共通論点です。その後に今回固有の条件を足してください。</p>
           <h3>1．年度ごとの問題と論点を覚える</h3>
           <p>各年度の問題文と論点を繰り返し見て、何がどう問われたかを整理します。テーマが違っても、使う視点には共通点があります。</p>
           <h3>2．中問を丁寧に学ぶ</h3>
@@ -716,7 +740,7 @@ function ShokenStudy({ rows }) {
             <article className="question-card shoken-card" key={`${row.id}-${index}`}>
               <div className="question-meta"><span>{selected}</span>{row.問題番号 && <span>{row.問題番号}</span>}</div>
               <h2>問題文</h2><div className="multiline">{row.問題文}</div>
-              <h2>論点</h2><div className="multiline answer-panel">{row.論点}</div>
+              <h2>論点</h2><ShokenPoints text={row.論点} />
             </article>
           ))}
         </div>
