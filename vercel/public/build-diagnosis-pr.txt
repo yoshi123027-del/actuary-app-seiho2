@@ -1,2 +1,3 @@
 Trigger pull request build diagnosis for Vercel-compatible production build.
 Second diagnostic run with captured build log.
+Third run after CSS Modules selector fix.
