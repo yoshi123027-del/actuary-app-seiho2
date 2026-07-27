@@ -1,8 +1,20 @@
 import styles from "./ShokenAnswerView.module.css";
 
 const ORDER = ["目的", "変化", "影響", "計測", "経営対応"];
-const KEYS = {"目的":["目的","意義","契約者保護","健全性","公平","収益性","経営"],"変化":["変化","導入","新商品","金利","インフレ","競争","制度","環境","リスクプロファイル"],"影響":["影響","損益","利益","責任準備金","自己資本","経済価値","流動性","配当","費差","利差"],"計測":["計測","評価","分析","検証","前提","モデル","シナリオ","ストレス","利源","EV","ALM"],"経営対応":["対応","活用","管理","商品","料率","販売","再保険","ヘッジ","資本","配当","モニタリング","回復計画"]};
-const FALLBACK = {"目的":["契約者保護、健全性、公平性、持続的収益性の中心目的を明確にする。","指標の計算自体ではなく、経営判断に役立てる目的を示す。","法定目的と内部管理目的を区別し、必要に応じて併用する。"],"変化":["商品、チャネル、経済環境、制度、契約者行動の変化を抽出する。","複数要因の相互作用と時間軸を確認する。","保有契約、資産構成、リスクプロファイルへの波及を整理する。"],"影響":["法定損益、経済価値、責任準備金、自己資本、流動性への影響を分ける。","商品・契約年度・チャネル・利源別に影響を分解する。","短期と将来、通常時とストレス時で影響方向が変わる可能性を示す。"],"計測":["単年度と将来収支、法定会計と経済価値、通常計測とストレスを併用する。","前提・モデル・データを実績対比、感応度、独立検証で確認する。","結果を要因分解し、指標間の差異と限界を経営へ説明する。"],"経営対応":["商品・料率、販売、ALM、再保険、資本、配当、事業費へ反映する。","リスク限度、警戒・介入・回復トリガーと責任部署を定める。","施策実施後の効果と副作用をモニタリングし、見直す。"]};
+const KEYS = {
+  "目的": ["目的", "意義", "契約者保護", "健全性", "公平", "収益性", "経営"],
+  "変化": ["変化", "導入", "新商品", "金利", "インフレ", "競争", "制度", "環境", "リスクプロファイル"],
+  "影響": ["影響", "損益", "利益", "責任準備金", "自己資本", "経済価値", "流動性", "配当", "費差", "利差"],
+  "計測": ["計測", "評価", "分析", "検証", "前提", "モデル", "シナリオ", "ストレス", "利源", "EV", "ALM"],
+  "経営対応": ["対応", "活用", "管理", "商品", "料率", "販売", "再保険", "ヘッジ", "資本", "配当", "モニタリング", "回復計画"],
+};
+const FRAMEWORK_GUIDE = {
+  "目的": "何のための制度・分析・管理か。",
+  "変化": "商品、環境、制度、契約者行動の何が変わるか。",
+  "影響": "損益、健全性、経済価値、流動性へどう効くか。",
+  "計測": "どの指標・分析・シナリオで確認するか。",
+  "経営対応": "結果を商品、資産、資本、販売、配当へどう反映するか。",
+};
 
 const sentences = (text) => String(text || "").replace(/\r/g, "")
   .split(/(?<=[。！？])|\n+/).map((x) => x.trim()).filter((x) => x.length >= 10);
@@ -11,24 +23,16 @@ const short = (text, n = 112) => {
   return value.length <= n ? value : `${value.slice(0, n).replace(/[、。\s]+$/, "")}…`;
 };
 
-function frameworkPoints(row) {
-  const source = sentences(`${row.問題文 || ""}\n${row.合格レベル答案 || ""}`);
-  return Object.fromEntries(ORDER.map((name) => {
-    const ranked = source.map((text, index) => ({ text, index,
-      score: (KEYS[name] || []).reduce((s, key) => s + (text.includes(key) ? 2 : 0), 0),
-    })).filter((x) => x.score > 0).sort((a, b) => b.score - a.score || a.index - b.index);
-    const result = [];
-    for (const item of ranked) {
-      const value = short(item.text);
-      if (!result.includes(value)) result.push(value);
-      if (result.length === 3) break;
-    }
-    for (const value of FALLBACK[name] || []) {
-      if (result.length === 3) break;
-      if (!result.includes(value)) result.push(value);
-    }
-    return [name, result.slice(0, 3)];
-  }));
+function focusCategories(row) {
+  const source = `${row.問題文 || ""}\n${row.合格レベル答案 || ""}`;
+  return ORDER.map((name) => ({
+    name,
+    score: (KEYS[name] || []).reduce((sum, key) => sum + (source.includes(key) ? 1 : 0), 0),
+  }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map((item) => item.name);
 }
 
 function problemSections(problem) {
@@ -49,16 +53,20 @@ function problemSections(problem) {
       result.push(`指定論点 ${short(line.replace(/^[-・]\s*/u, ""), 60)}`);
     }
   });
-  return [...new Set(result)].slice(0, 12).length ? [...new Set(result)].slice(0, 12) : ["問題文に沿った答案"];
+  const unique = [...new Set(result)].slice(0, 12);
+  return unique.length ? unique : ["問題文に沿った答案"];
 }
 
 function categories(title) {
-  const ranked = ORDER.map((name) => ({ name,
-    score: (KEYS[name] || []).reduce((s, key) => s + (title.includes(key) ? 2 : 0), title.includes(name) ? 4 : 0),
-  })).sort((a, b) => b.score - a.score);
-  const result = ranked.filter((x) => x.score > 0).slice(0, 3).map((x) => x.name);
-  for (const name of ORDER) { if (result.length >= 3) break; if (!result.includes(name)) result.push(name); }
-  return result;
+  const result = ORDER.map((name) => ({
+    name,
+    score: (KEYS[name] || []).reduce((sum, key) => sum + (title.includes(key) ? 2 : 0), title.includes(name) ? 4 : 0),
+  }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 2)
+    .map((item) => item.name);
+  return result.length ? result : ["目的"];
 }
 
 function answerParts(text, minimum) {
@@ -98,13 +106,11 @@ function threePoints(parts) {
 }
 
 function Framework({ row }) {
-  const points = frameworkPoints(row);
+  const focus = focusCategories(row);
   return <div className={styles.text}>
     <p><strong>{ORDER.join(" → ")}</strong></p>
-    {ORDER.map((name) => <div key={name}>
-      <h3>{name}</h3>
-      {points[name].map((point, i) => <p className={styles.bullet} key={`${name}-${i}`}><strong>論点{i + 1}</strong>　{point}</p>)}
-    </div>)}
+    {focus.length > 0 && <p><strong>この問題の主軸：</strong>{focus.join("・")}</p>}
+    {ORDER.map((name) => <p key={name}><strong>{name}：</strong>{FRAMEWORK_GUIDE[name]}</p>)}
   </div>;
 }
 
@@ -133,7 +139,7 @@ export default function ShokenAnswerViewEnhanced({ row }) {
     <section className={styles.section}>
       <div className={styles.answerHeading}>
         <h2>② 合格レベル答案</h2>
-        <span>問題文の指定構成を土台に、各区分で最低3論点を展開</span>
+        <span>問題文の指定構成を土台に、具体論点を幅広く展開</span>
       </div>
       <Answer row={row} />
     </section>
