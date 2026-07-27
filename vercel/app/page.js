@@ -561,17 +561,31 @@ function Dashboard({ questions, progress, onOpenCaution, onOpenReview, onOpenCha
         {chapters.map((chapter) => {
           const rows = questions.filter((q) => q.章 === chapter);
           const done = rows.filter((q) => progress.ratings[q.id] === "理解").length;
+          const chapterPercent = rows.length ? Math.round(done / rows.length * 100) : 0;
+          const chapterGold = Math.max(0, Math.min(1, (chapterPercent - 50) / 50));
+          const chapterName = appConfig.chapterNames?.[chapter] || "出題範囲";
+          const chapterLabel = /^\d+$/.test(chapter) ? `第${chapter}章` : chapter === "その他" ? "横断論点" : chapter;
+          const chapterStyle = {
+            "--chapter-fill": `${Math.max(12, chapterPercent)}%`,
+            "--chapter-green-glow": Number((0.05 + chapterPercent / 100 * 0.15).toFixed(3)),
+            "--chapter-gold-soft": Number((chapterGold * 0.68).toFixed(3)),
+            "--chapter-gold-glow": Number((chapterGold * 0.42).toFixed(3)),
+          };
           return (
             <button
               type="button"
-              className="chapter-progress"
+              className={`chapter-progress ${chapterPercent >= 50 ? "is-shining" : ""} ${chapterPercent === 100 ? "is-complete" : ""}`}
+              style={chapterStyle}
               key={chapter}
               onClick={() => onOpenChapter(chapter)}
-              aria-label={`第${chapter}章の問題を開く。理解済み${done}問、全${rows.length}問`}
+              aria-label={`${chapterLabel} ${chapterName}の問題を開く。理解度${chapterPercent}%、理解済み${done}問、全${rows.length}問`}
             >
-              <div className="chapter-progress-head"><span>第{chapter}章</span><strong>{done}/{rows.length}</strong></div>
+              <div className="chapter-progress-head">
+                <span className="chapter-title"><b>{chapterLabel}</b><em>{chapterName}</em></span>
+                <strong>{chapterPercent === 100 && <i aria-hidden="true">★</i>}{chapterPercent}%</strong>
+              </div>
               <progress value={done} max={rows.length} />
-              <small>この章を学ぶ →</small>
+              <small>{done}/{rows.length}問理解 · この章を学ぶ →</small>
             </button>
           );
         })}
