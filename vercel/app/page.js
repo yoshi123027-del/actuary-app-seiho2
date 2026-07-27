@@ -36,6 +36,59 @@ function todayInJapan() {
   };
 }
 
+function japanDateKey(timestamp = Date.now()) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function addStudyInterval(dailySeconds, startTimestamp, endTimestamp) {
+  const next = { ...dailySeconds };
+  let cursor = Number(startTimestamp);
+  const end = Number(endTimestamp);
+  if (!Number.isFinite(cursor) || !Number.isFinite(end) || end <= cursor) return next;
+
+  while (cursor < end) {
+    const shifted = new Date(cursor + 9 * 60 * 60 * 1000);
+    const key = shifted.toISOString().slice(0, 10);
+    const nextMidnight = Date.UTC(
+      shifted.getUTCFullYear(),
+      shifted.getUTCMonth(),
+      shifted.getUTCDate() + 1,
+    ) - 9 * 60 * 60 * 1000;
+    const segmentEnd = Math.min(end, nextMidnight);
+    next[key] = (Number(next[key]) || 0) + (segmentEnd - cursor) / 1000;
+    cursor = segmentEnd;
+  }
+  return next;
+}
+
+function recentJapanDays(count, timestamp) {
+  const shifted = new Date(timestamp + 9 * 60 * 60 * 1000);
+  shifted.setUTCHours(0, 0, 0, 0);
+  return Array.from({ length: count }, (_, index) => {
+    const day = new Date(shifted.getTime() - (count - 1 - index) * 86400000);
+    return day.toISOString().slice(0, 10);
+  });
+}
+
+function formatClock(totalSeconds) {
+  const seconds = Math.max(0, Math.floor(totalSeconds || 0));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+  return [hours, minutes, rest].map((value) => String(value).padStart(2, "0")).join(":");
+}
+
+function formatStudyDuration(totalSeconds) {
+  const minutes = Math.floor((totalSeconds || 0) / 60);
+  if (minutes < 60) return `${minutes}分`;
+  return `${Math.floor(minutes / 60)}時間${minutes % 60}分`;
+}
+
 function daysUntil(dateString) {
   return Math.ceil((new Date(dateString).getTime() - Date.now()) / 86400000);
 }
@@ -92,6 +145,64 @@ function useProgress(storageKey) {
   }));
 
   return { progress, rate, toggleReview };
+}
+
+function useStudyTimer(storageKey) {
+  const timerStorageKey = `${storageKey}_study_time_v1`;
+  const [dailySeconds, setDailySeconds] = useState({});
+  const [activeSince, setActiveSince] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    const current = Date.now();
+    setNow(current);
+    try {
+      const saved = JSON.parse(localStorage.getItem(timerStorageKey) || "null");
+      if (saved && typeof saved === "object") {
+        setDailySeconds(saved.dailySeconds || {});
+        setActiveSince(Number.isFinite(saved.activeSince) ? saved.activeSince : null);
+      }
+    } catch {
+      // 壊れた保存値は無視する。
+    }
+    setReady(true);
+  }, [timerStorageKey]);
+
+  useEffect(() => {
+    if (!ready) return;
+    localStorage.setItem(timerStorageKey, JSON.stringify({ dailySeconds, activeSince }));
+  }, [activeSince, dailySeconds, ready, timerStorageKey]);
+
+  useEffect(() => {
+    if (!activeSince) return undefined;
+    const intervalId = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(intervalId);
+  }, [activeSince]);
+
+  const displayedDailySeconds = useMemo(
+    () => activeSince && now ? addStudyInterval(dailySeconds, activeSince, now) : dailySeconds,
+    [activeSince, dailySeconds, now],
+  );
+
+  const toggle = () => {
+    const current = Date.now();
+    setNow(current);
+    if (activeSince) {
+      setDailySeconds((days) => addStudyInterval(days, activeSince, current));
+      setActiveSince(null);
+    } else {
+      setActiveSince(current);
+    }
+  };
+
+  return {
+    running: Boolean(activeSince),
+    toggle,
+    dailySeconds: displayedDailySeconds,
+    todaySeconds: displayedDailySeconds[japanDateKey(now || Date.now())] || 0,
+    now: now || Date.now(),
+  };
 }
 
 function Stat({ value, label, tone = "" }) {
@@ -222,6 +333,53 @@ function Dashboard({ questions, progress }) {
   );
 }
 
+function StudyHistory({ dailySeconds, now }) {
+  const days = recentJapanDays(14, now);
+  const lastSeven = days.slice(-7);
+  const todayKey = days[days.length - 1];
+  const todaySeconds = Number(dailySeconds[todayKey]) || 0;
+  const weeklySeconds = lastSeven.reduce((sum, key) => sum + (Number(dailySeconds[key]) || 0), 0);
+  const maxSeconds = Math.max(60, ...days.map((key) => Number(dailySeconds[key]) || 0));
+
+  const streakDays = recentJapanDays(366, now);
+  let streak = 0;
+  let cursor = streakDays.length - 1;
+  if ((Number(dailySeconds[streakDays[cursor]]) || 0) === 0) cursor -= 1;
+  while (cursor >= 0 && (Number(dailySeconds[streakDays[cursor]]) || 0) > 0) {
+    streak += 1;
+    cursor -= 1;
+  }
+
+  return (
+    <section className="surface study-history">
+      <div className="section-title">
+        <div><span>STUDY LOG</span><h2>日々の勉強記録</h2></div>
+        <p>学習時間はこの端末に日付別で自動保存されます。</p>
+      </div>
+      <div className="study-summary">
+        <Stat value={formatStudyDuration(todaySeconds)} label="今日" tone="green" />
+        <Stat value={formatStudyDuration(weeklySeconds)} label="直近7日" />
+        <Stat value={`${streak}日`} label="連続学習" tone="yellow" />
+      </div>
+      <div className="study-chart" aria-label="過去14日間の勉強時間">
+        {days.map((key) => {
+          const seconds = Number(dailySeconds[key]) || 0;
+          const height = seconds ? Math.max(8, seconds / maxSeconds * 100) : 2;
+          const date = new Date(`${key}T00:00:00+09:00`);
+          const label = `${date.getMonth() + 1}/${date.getDate()}`;
+          return (
+            <div className="study-bar-column" key={key} title={`${key}: ${formatStudyDuration(seconds)}`}>
+              <span className="study-bar-value">{seconds >= 60 ? `${Math.floor(seconds / 60)}m` : ""}</span>
+              <div className="study-bar-track"><div className="study-bar" style={{ height: `${height}%` }} /></div>
+              <span className="study-bar-label">{label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function ShokenStudy({ rows }) {
   const options = ["所見の習得方法", "2025年度", "2024年度", "2023年度", "2022年度", "2021年度", "2020年度", "2019年度", "2018年度"];
   const [selected, setSelected] = useState(options[0]);
@@ -271,8 +429,8 @@ export default function Home() {
   const [currentId, setCurrentId] = useState("");
   const [filters, setFilters] = useState({ chapter: "", type: "", year: "", keyword: "" });
   const [loadingError, setLoadingError] = useState("");
-  const [timer, setTimer] = useState({ running: false, started: 0, accumulated: 0 });
   const { progress, rate, toggleReview } = useProgress(appConfig.storageKey);
+  const studyTimer = useStudyTimer(appConfig.storageKey);
   const today = todayInJapan();
 
   useEffect(() => {
@@ -296,12 +454,6 @@ export default function Home() {
       .catch(() => setShoken([]));
   }, []);
 
-  useEffect(() => {
-    if (!timer.running) return undefined;
-    const id = setInterval(() => setTimer((value) => ({ ...value })), 1000);
-    return () => clearInterval(id);
-  }, [timer.running]);
-
   const filtered = useMemo(() => questions.filter((q) => {
     const keyword = filters.keyword.trim().toLowerCase();
     return (!filters.chapter || q.章 === filters.chapter)
@@ -315,8 +467,6 @@ export default function Home() {
     return grouped.length ? grouped : questions;
   }, [questions, today.group]);
 
-  const elapsed = timer.accumulated + (timer.running ? Math.max(0, Date.now() - timer.started) : 0);
-  const timerText = new Date(elapsed).toISOString().slice(11, 19);
   const examDays = daysUntil(appConfig.examDate);
 
   const openQuestion = (id, targetMenu) => {
@@ -345,11 +495,10 @@ export default function Home() {
             </section>
             <section className="surface"><h2>学習ダッシュボード</h2><Dashboard questions={questions} progress={progress} /></section>
             <section className="surface timer">
-              <div><span>今日の勉強時間</span><strong>{timerText}</strong></div>
-              <button onClick={() => setTimer((value) => value.running
-                ? { running: false, started: 0, accumulated: value.accumulated + Date.now() - value.started }
-                : { ...value, running: true, started: Date.now() })}>{timer.running ? "学習終了" : "学習開始"}</button>
+              <div><span>今日の勉強時間</span><strong>{formatClock(studyTimer.todaySeconds)}</strong></div>
+              <button onClick={studyTimer.toggle}>{studyTimer.running ? "学習終了" : "学習開始"}</button>
             </section>
+            <StudyHistory dailySeconds={studyTimer.dailySeconds} now={studyTimer.now} />
           </>
         )}
 

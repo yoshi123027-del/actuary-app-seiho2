@@ -48,6 +48,18 @@ progress { width: 100%; height: 9px; accent-color: var(--green-2); }
 .timer { display: flex; align-items: center; justify-content: space-between; }
 .timer span { display: block; color: var(--muted); font-size: 13px; }
 .timer strong { font: 36px ui-monospace, monospace; }
+.section-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.section-title span { color: var(--green-2); font-size: 12px; font-weight: 800; letter-spacing: .16em; }
+.section-title h2 { margin: 6px 0 0; font: 30px Georgia, "Yu Mincho", serif; }
+.section-title p { margin: 0; color: var(--muted); font-size: 13px; }
+.study-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.study-summary .stat strong { font-size: clamp(24px, 4vw, 34px); }
+.study-chart { height: 250px; margin-top: 28px; padding: 12px 4px 0; display: grid; grid-template-columns: repeat(14, minmax(34px, 1fr)); gap: 8px; overflow-x: auto; border-top: 1px solid var(--line); }
+.study-bar-column { min-width: 34px; height: 220px; display: grid; grid-template-rows: 22px 1fr 24px; align-items: flex-end; text-align: center; }
+.study-bar-value { color: var(--muted); font-size: 10px; }
+.study-bar-track { height: 160px; display: flex; align-items: end; justify-content: center; border-bottom: 1px solid #d7e1dc; }
+.study-bar { width: min(22px, 72%); min-height: 3px; background: linear-gradient(180deg, #4f9879, var(--green)); border-radius: 6px 6px 2px 2px; transition: height .25s ease; }
+.study-bar-label { padding-top: 7px; color: var(--muted); font-size: 10px; white-space: nowrap; }
 .page-heading { margin: 50px 0 24px; }
 .page-heading > span { color: var(--green-2); }
 .page-heading h2 { margin: 8px 0; font-family: Georgia, "Yu Mincho", serif; font-size: 36px; }
@@ -102,4 +114,7 @@ footer { padding: 34px; color: #9cb3aa; text-align: center; background: var(--gr
   .question-toolbar { grid-template-columns: 1fr; }
   .timer { align-items: stretch; flex-direction: column; gap: 16px; }
   .timer button { width: 100%; }
+  .section-title { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .study-summary { grid-template-columns: 1fr; }
+  .study-chart { grid-template-columns: repeat(14, 38px); }
 }
