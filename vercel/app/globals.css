@@ -108,19 +108,6 @@ progress { width: 100%; height: 9px; accent-color: var(--stage-color, var(--gree
 .study-filter-row { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
 .study-history-tools label { display: flex; align-items: center; color: var(--muted); font-size: 13px; font-weight: 700; white-space: nowrap; }
 .study-history-tools select { min-width: 92px; margin-left: 10px; padding: 8px 28px 8px 10px; color: var(--ink); background: #fafbf9; border: 1px solid #cfd9d3; border-radius: 8px; }
-.exam-roadmap { margin: 0 0 16px; padding: 15px 17px 13px; background: linear-gradient(135deg, #edf6f1, #fffaf0); border: 1px solid #d8e6de; border-radius: 13px; }
-.exam-roadmap-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.exam-roadmap-head > div > span { color: #a4791b; font-size: 10px; font-weight: 900; letter-spacing: .14em; }
-.exam-roadmap-head strong { display: block; margin-top: 3px; color: var(--green); font: 22px Georgia, "Yu Mincho", serif; }
-.exam-roadmap-head p { margin: 5px 0 0; color: #60736b; font-size: 11px; line-height: 1.55; }
-.exam-roadmap-head > b { flex: 0 0 auto; padding: 8px 12px; color: #70520f; background: rgba(255, 244, 204, .82); border: 1px solid #d7b557; border-radius: 999px; font-size: 13px; }
-.exam-roadmap-steps { margin-top: 13px; display: grid; grid-template-columns: 2fr 1fr 1fr .72fr; gap: 5px; }
-.exam-roadmap-step { min-width: 0; padding: 7px 7px 5px; color: #8b9892; border-top: 4px solid #dbe3df; border-radius: 4px 4px 8px 8px; }
-.exam-roadmap-step strong, .exam-roadmap-step span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.exam-roadmap-step strong { font-size: 11px; }
-.exam-roadmap-step span { margin-top: 2px; font-size: 9px; }
-.exam-roadmap-step.is-complete { color: #377158; border-top-color: #6ba586; background: rgba(226, 241, 233, .58); }
-.exam-roadmap-step.is-current { color: #61470c; border-top-color: #c89b35; background: rgba(255, 246, 216, .92); box-shadow: 0 5px 14px rgba(172, 130, 31, .12); }
 .study-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
 .study-summary .stat { min-height: 68px; padding: 10px 12px; background: #fafbfa; border-color: #e7ece9; border-radius: 9px; }
 .study-summary .stat strong { overflow: hidden; font-size: clamp(18px, 2.7vw, 24px); line-height: 1.1; white-space: nowrap; text-overflow: ellipsis; }
@@ -129,17 +116,6 @@ progress { width: 100%; height: 9px; accent-color: var(--stage-color, var(--gree
 .study-summary .stat.study-year { background: #faf9f5; border-color: #ebe7dc; }
 .study-chart { height: 250px; margin-top: 28px; padding: 12px 4px 0; display: grid; grid-template-columns: repeat(var(--study-period-count, 14), minmax(42px, 1fr)); gap: 8px; overflow-x: auto; border-top: 1px solid var(--line); }
 .study-bar-column { min-width: 38px; height: 220px; display: grid; grid-template-rows: 1fr 24px; align-items: flex-end; text-align: center; }
-.study-chart.study-chart-monthly { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: clamp(2px, .7vw, 8px); overflow-x: hidden; }
-.study-chart-monthly .study-bar-column { min-width: 0; }
-.study-chart-monthly .study-bar-value { font-size: clamp(7px, 1vw, 10px); }
-.study-chart-monthly .study-bar-label { font-size: clamp(7px, 1vw, 10px); }
-.study-bar-column.is-current-month .study-bar-track { background: linear-gradient(180deg, rgba(226, 242, 234, .74), rgba(255, 255, 255, 0)); box-shadow: inset 0 0 0 1px #8ebba5; border-radius: 7px 7px 0 0; }
-.study-bar-column.is-current-month .study-bar-label { color: #216247; font-weight: 900; }
-.study-bar-column.is-exam-month .study-bar-track { background: linear-gradient(180deg, rgba(255, 244, 204, .9), rgba(255, 253, 245, .38)); box-shadow: inset 0 0 0 1px #d2ad4d, 0 0 16px rgba(199, 154, 50, .18); border-radius: 7px 7px 0 0; }
-.study-bar-column.is-exam-month .study-bar { background: linear-gradient(180deg, #d7b557, #826317 26%, #174936); }
-.study-bar-column.is-exam-month .study-bar-label { color: #78570e; font-weight: 900; }
-.study-bar-label small { display: block; margin-top: 1px; color: #a4791b; font-size: 7px; font-weight: 900; }
-
 .study-bar-track { position: relative; height: 182px; padding-top: 24px; display: flex; align-items: end; justify-content: center; border-bottom: 1px solid #d7e1dc; }
 .study-bar-value { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); color: var(--ink); font-size: 10px; font-weight: 800; white-space: nowrap; }
 .study-bar { width: min(24px, 72%); min-height: 3px; background: linear-gradient(180deg, #4f9879, var(--green)); border-radius: 6px 6px 2px 2px; transition: height .25s ease; }
@@ -214,19 +190,4 @@ footer { padding: 34px; color: #9cb3aa; text-align: center; background: var(--gr
   .study-filter-row { width: 100%; justify-content: flex-start; }
   .study-history-tools label { justify-content: space-between; width: 100%; }
   .study-chart { grid-template-columns: repeat(var(--study-period-count, 14), 42px); }
-  .exam-roadmap { padding: 13px 12px 11px; }
-  .exam-roadmap-head strong { font-size: 18px; }
-  .exam-roadmap-head p { font-size: 10px; }
-  .exam-roadmap-head > b { padding: 7px 9px; font-size: 11px; }
-  .exam-roadmap-steps { gap: 3px; }
-  .exam-roadmap-step { padding: 6px 3px 4px; }
-  .exam-roadmap-step strong { font-size: 9px; }
-  .exam-roadmap-step span { font-size: 7px; }
-  .study-chart.study-chart-monthly { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 2px; padding-right: 0; padding-left: 0; overflow-x: hidden; }
-  .study-chart-monthly .study-bar-column { min-width: 0; }
-  .study-chart-monthly .study-bar-track { padding-top: 22px; }
-  .study-chart-monthly .study-bar-value { font-size: clamp(6px, 1.9vw, 8px); }
-  .study-chart-monthly .study-bar-label { font-size: clamp(7px, 2vw, 9px); }
-  .study-chart-monthly .study-bar-label small { font-size: 6px; }
-
 }
