@@ -430,7 +430,7 @@ function Dashboard({ questions, progress }) {
 }
 
 function StudyHistory({ dailySeconds, now }) {
-  const [viewMode, setViewMode] = useState("daily");
+  const [viewMode, setViewMode] = useState("monthly");
   const currentYear = Number(japanDateKey(now).slice(0, 4));
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const yearOptions = availableStudyYears(dailySeconds, currentYear);
