@@ -185,6 +185,14 @@ function formatStudyDuration(totalSeconds) {
   return `${Math.floor(minutes / 60)}時間${minutes % 60}分`;
 }
 
+function formatCompactStudyDuration(totalSeconds) {
+  const minutes = Math.floor((totalSeconds || 0) / 60);
+  if (minutes < 60) return `${minutes}分`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours}h${rest}m` : `${hours}h`;
+}
+
 function daysUntil(dateString) {
   return Math.ceil((new Date(dateString).getTime() - Date.now()) / 86400000);
 }
@@ -546,9 +554,9 @@ function StudyHistory({ dailySeconds, now }) {
         </div>
       </div>
       <div className="study-summary">
-        <Stat value={formatStudyDuration(todaySeconds)} label="今日" tone="study-today" />
-        <Stat value={formatStudyDuration(monthlySeconds)} label="今月の累計勉強時間" />
-        <Stat value={formatStudyDuration(yearlySeconds)} label="今年の勉強時間" tone="study-year" />
+        <Stat value={formatCompactStudyDuration(todaySeconds)} label="今日" tone="study-today" />
+        <Stat value={formatCompactStudyDuration(monthlySeconds)} label="今月" />
+        <Stat value={formatCompactStudyDuration(yearlySeconds)} label="今年" tone="study-year" />
       </div>
       <div
         className="study-chart"
