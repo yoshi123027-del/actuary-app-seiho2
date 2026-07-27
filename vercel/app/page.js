@@ -405,13 +405,15 @@ function Filters({ questions, filters, setFilters, showKeyword = false }) {
   );
 }
 
-function AssignmentModeSwitch({ mode, onChange, variant = "" }) {
+function AssignmentModeSelect({ mode, onChange }) {
   return (
-    <div className={`assignment-mode-switch ${variant}`} role="group" aria-label="今日の課題の学習ペース">
+    <label className="assignment-mode-select">
       <span>学習ペース</span>
-      <button type="button" className={mode === "two-week" ? "active" : ""} aria-pressed={mode === "two-week"} onClick={() => onChange("two-week")}>2週間で一周</button>
-      <button type="button" className={mode === "one-week" ? "active" : ""} aria-pressed={mode === "one-week"} onClick={() => onChange("one-week")}>1週間で一周</button>
-    </div>
+      <select value={mode} onChange={(event) => onChange(event.target.value)} aria-label="今日の課題の学習ペース">
+        <option value="two-week">2週間で一周</option>
+        <option value="one-week">1週間で一周</option>
+      </select>
+    </label>
   );
 }
 
@@ -762,8 +764,9 @@ export default function Home() {
   }), [questions, filters]);
 
   const todayCycleGroup = twoWeekCycleGroup(today.iso);
+  const oneWeekStartGroup = Number(today.group) * 2 - 1;
   const todayGroupNumbers = assignmentMode === "one-week"
-    ? [Number(today.group), Number(today.group) + 7]
+    ? [oneWeekStartGroup, oneWeekStartGroup + 1]
     : [todayCycleGroup];
   const todayRows = useMemo(
     () => questions.filter((question) => todayGroupNumbers.includes(Number(question.曜日グループ))),
@@ -819,8 +822,8 @@ export default function Home() {
               <div>
                 <span className="today">{today.iso}（{today.weekday}）</span>
                 <div className="daily-cycle-badge"><span>{assignmentModeLabel}</span><strong>{assignmentDayLabel}</strong></div>
-                <AssignmentModeSwitch mode={assignmentMode} onChange={changeAssignmentMode} variant="on-dark" />
-                <h2>{todayComplete ? "今日の課題、完了です。" : `今日の分を終えて、${assignmentMode === "one-week" ? "1週間" : "2週間"}で一周。`}</h2>
+                <AssignmentModeSelect mode={assignmentMode} onChange={changeAssignmentMode} />
+                <h2>{todayComplete ? "今日の課題、完了です。" : "今日も、1問ずつ確実に。"}</h2>
                 <p className="daily-task-progress-copy">
                   {todayComplete
                     ? `本日の${todayRows.length}問を完了しました。`
@@ -847,7 +850,7 @@ export default function Home() {
               <div><span>今日の勉強時間</span><strong>{formatClock(studyTimer.todaySeconds)}</strong></div>
               <div className={`auto-timer-status ${studyTimer.running ? "is-running" : ""}`}>
                 <span><i aria-hidden="true" />{studyTimer.running ? "自動計測中" : "一時停止中"}</span>
-                <small>この画面を表示している時間を自動保存</small>
+                <small>このWEBアプリを開いて勉強している時間を自動保存</small>
               </div>
             </section>
             <StudyHistory dailySeconds={studyTimer.dailySeconds} now={studyTimer.now} />
@@ -860,7 +863,6 @@ export default function Home() {
               <span>{assignmentMode === "one-week" ? `7-DAY REVIEW · ${assignmentDayLabel}` : `14-DAY STUDY CYCLE · ${assignmentDayLabel}`}</span>
               <h2>今日の課題</h2>
               <p>{assignmentDescription}</p>
-              <AssignmentModeSwitch mode={assignmentMode} onChange={changeAssignmentMode} />
               <div className={`today-task-meter ${todayComplete ? "is-complete" : ""}`}>
                 <div><span>本日の進捗</span><strong>{todayCompleted} / {todayRows.length}問</strong></div>
                 <div
