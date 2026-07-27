@@ -75,6 +75,84 @@ function recentJapanDays(count, timestamp) {
   });
 }
 
+const STUDY_VIEW_OPTIONS = {
+  daily: { label: "日次", periods: 14 },
+  weekly: { label: "週次", periods: 12 },
+  monthly: { label: "月次", periods: 12 },
+};
+
+function utcDateKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function monthDayLabel(date) {
+  return `${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
+}
+
+function sumStudySeconds(dailySeconds, startKey, endKey) {
+  return Object.entries(dailySeconds).reduce((total, [key, value]) => {
+    if (key < startKey || key > endKey) return total;
+    return total + Math.max(0, Number(value) || 0);
+  }, 0);
+}
+
+function buildStudyPeriods(viewMode, dailySeconds, timestamp) {
+  const currentDay = new Date(timestamp + 9 * 60 * 60 * 1000);
+  currentDay.setUTCHours(0, 0, 0, 0);
+
+  if (viewMode === "daily") {
+    return Array.from({ length: STUDY_VIEW_OPTIONS.daily.periods }, (_, index) => {
+      const day = new Date(currentDay.getTime() - (STUDY_VIEW_OPTIONS.daily.periods - 1 - index) * 86400000);
+      const key = utcDateKey(day);
+      return {
+        key,
+        label: monthDayLabel(day),
+        title: key,
+        seconds: Number(dailySeconds[key]) || 0,
+      };
+    });
+  }
+
+  if (viewMode === "weekly") {
+    const daysSinceMonday = (currentDay.getUTCDay() + 6) % 7;
+    const currentMonday = new Date(currentDay.getTime() - daysSinceMonday * 86400000);
+    return Array.from({ length: STUDY_VIEW_OPTIONS.weekly.periods }, (_, index) => {
+      const start = new Date(currentMonday.getTime() - (STUDY_VIEW_OPTIONS.weekly.periods - 1 - index) * 7 * 86400000);
+      const end = new Date(start.getTime() + 6 * 86400000);
+      const startKey = utcDateKey(start);
+      const endKey = utcDateKey(end);
+      return {
+        key: `week-${startKey}`,
+        label: `${monthDayLabel(start)}週`,
+        title: `${startKey}〜${endKey}`,
+        seconds: sumStudySeconds(dailySeconds, startKey, endKey),
+      };
+    });
+  }
+
+  return Array.from({ length: STUDY_VIEW_OPTIONS.monthly.periods }, (_, index) => {
+    const offset = STUDY_VIEW_OPTIONS.monthly.periods - 1 - index;
+    const start = new Date(Date.UTC(currentDay.getUTCFullYear(), currentDay.getUTCMonth() - offset, 1));
+    const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0));
+    const startKey = utcDateKey(start);
+    const endKey = utcDateKey(end);
+    return {
+      key: `month-${startKey}`,
+      label: `${String(start.getUTCFullYear()).slice(-2)}/${start.getUTCMonth() + 1}`,
+      title: `${start.getUTCFullYear()}年${start.getUTCMonth() + 1}月`,
+      seconds: sumStudySeconds(dailySeconds, startKey, endKey),
+    };
+  });
+}
+
+function formatStudyBarValue(totalSeconds) {
+  const minutes = Math.round((totalSeconds || 0) / 60);
+  if (minutes < 1) return "";
+  if (minutes < 120) return `${minutes}m`;
+  const hours = totalSeconds / 3600;
+  return hours < 10 ? `${hours.toFixed(1)}h` : `${Math.round(hours)}h`;
+}
+
 function formatClock(totalSeconds) {
   const seconds = Math.max(0, Math.floor(totalSeconds || 0));
   const hours = Math.floor(seconds / 3600);
@@ -334,12 +412,15 @@ function Dashboard({ questions, progress }) {
 }
 
 function StudyHistory({ dailySeconds, now }) {
+  const [viewMode, setViewMode] = useState("daily");
   const days = recentJapanDays(14, now);
   const lastSeven = days.slice(-7);
   const todayKey = days[days.length - 1];
   const todaySeconds = Number(dailySeconds[todayKey]) || 0;
   const weeklySeconds = lastSeven.reduce((sum, key) => sum + (Number(dailySeconds[key]) || 0), 0);
-  const maxSeconds = Math.max(60, ...days.map((key) => Number(dailySeconds[key]) || 0));
+  const periods = buildStudyPeriods(viewMode, dailySeconds, now);
+  const maxSeconds = Math.max(60, ...periods.map((period) => period.seconds));
+  const viewLabel = STUDY_VIEW_OPTIONS[viewMode].label;
 
   const streakDays = recentJapanDays(366, now);
   let streak = 0;
@@ -354,24 +435,38 @@ function StudyHistory({ dailySeconds, now }) {
     <section className="surface study-history">
       <div className="section-title">
         <div><span>STUDY LOG</span><h2>日々の勉強記録</h2></div>
-        <p>学習時間はこの端末に日付別で自動保存されます。</p>
+        <div className="study-history-tools">
+          <label>表示単位
+            <select
+              aria-label="勉強記録の表示単位"
+              value={viewMode}
+              onChange={(event) => setViewMode(event.target.value)}
+            >
+              {Object.entries(STUDY_VIEW_OPTIONS).map(([value, option]) => (
+                <option key={value} value={value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <p>学習時間はこの端末に日付別で自動保存されます。</p>
+        </div>
       </div>
       <div className="study-summary">
         <Stat value={formatStudyDuration(todaySeconds)} label="今日" tone="green" />
         <Stat value={formatStudyDuration(weeklySeconds)} label="直近7日" />
         <Stat value={`${streak}日`} label="連続学習" tone="yellow" />
       </div>
-      <div className="study-chart" aria-label="過去14日間の勉強時間">
-        {days.map((key) => {
-          const seconds = Number(dailySeconds[key]) || 0;
-          const height = seconds ? Math.max(8, seconds / maxSeconds * 100) : 2;
-          const date = new Date(`${key}T00:00:00+09:00`);
-          const label = `${date.getMonth() + 1}/${date.getDate()}`;
+      <div
+        className="study-chart"
+        aria-label={`${viewLabel}で集計した勉強時間`}
+        style={{ "--study-period-count": periods.length }}
+      >
+        {periods.map((period) => {
+          const height = period.seconds ? Math.max(8, period.seconds / maxSeconds * 100) : 2;
           return (
-            <div className="study-bar-column" key={key} title={`${key}: ${formatStudyDuration(seconds)}`}>
-              <span className="study-bar-value">{seconds >= 60 ? `${Math.floor(seconds / 60)}m` : ""}</span>
+            <div className="study-bar-column" key={period.key} title={`${period.title}: ${formatStudyDuration(period.seconds)}`}>
+              <span className="study-bar-value">{formatStudyBarValue(period.seconds)}</span>
               <div className="study-bar-track"><div className="study-bar" style={{ height: `${height}%` }} /></div>
-              <span className="study-bar-label">{label}</span>
+              <span className="study-bar-label">{period.label}</span>
             </div>
           );
         })}
