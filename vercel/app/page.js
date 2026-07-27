@@ -424,7 +424,7 @@ function understandingStage(percent) {
   return { key: "start", label: "スタート", icon: "○", message: "最初の一歩です。理解済みを増やして、学習の土台を作りましょう。" };
 }
 
-function Dashboard({ questions, progress, onOpenCaution, onOpenReview }) {
+function Dashboard({ questions, progress, onOpenCaution, onOpenReview, onOpenChapter }) {
   const understood = questions.filter((q) => progress.ratings[q.id] === "理解").length;
   const caution = questions.filter((q) => progress.ratings[q.id] === "要注意").length;
   const review = questions.filter((q) => progress.reviewFlags[q.id]).length;
@@ -464,7 +464,19 @@ function Dashboard({ questions, progress, onOpenCaution, onOpenReview }) {
         {chapters.map((chapter) => {
           const rows = questions.filter((q) => q.章 === chapter);
           const done = rows.filter((q) => progress.ratings[q.id] === "理解").length;
-          return <div className="chapter-progress" key={chapter}><span>第{chapter}章</span><strong>{done}/{rows.length}</strong><progress value={done} max={rows.length} /></div>;
+          return (
+            <button
+              type="button"
+              className="chapter-progress"
+              key={chapter}
+              onClick={() => onOpenChapter(chapter)}
+              aria-label={`第${chapter}章の問題を開く。理解済み${done}問、全${rows.length}問`}
+            >
+              <div className="chapter-progress-head"><span>第{chapter}章</span><strong>{done}/{rows.length}</strong></div>
+              <progress value={done} max={rows.length} />
+              <small>この章を学ぶ →</small>
+            </button>
+          );
         })}
       </div>
     </div>
@@ -657,6 +669,12 @@ export default function Home() {
     setMenu(targetMenu);
   };
 
+  const openChapter = (chapter) => {
+    const chapterRows = questions.filter((q) => q.章 === chapter);
+    setFilters({ chapter, type: "", year: "", keyword: "" });
+    openQuestion(chapterRows[0]?.id || "", "章ごとに学ぶ");
+  };
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -681,6 +699,7 @@ export default function Home() {
               progress={progress}
               onOpenCaution={() => openQuestion(cautionRows[0]?.id || "", "要注意問題")}
               onOpenReview={() => openQuestion(reviewRows[0]?.id || "", "後で復習問題")}
+              onOpenChapter={openChapter}
             /></section>
             <section className="surface timer">
               <div><span>今日の勉強時間</span><strong>{formatClock(studyTimer.todaySeconds)}</strong></div>
