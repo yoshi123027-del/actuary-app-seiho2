@@ -100,6 +100,13 @@ progress { width: 100%; height: 9px; accent-color: var(--stage-color, var(--gree
 .timer { display: flex; align-items: center; justify-content: space-between; }
 .timer span { display: block; color: var(--muted); font-size: 13px; }
 .timer strong { font: 36px ui-monospace, monospace; }
+.auto-timer-status { display: flex; align-items: flex-end; flex-direction: column; gap: 4px; text-align: right; }
+.auto-timer-status > span { display: flex; align-items: center; gap: 7px; color: #60736b; font-size: 12px; font-weight: 800; }
+.auto-timer-status > span i { width: 8px; height: 8px; display: inline-block; background: #9aa8a1; border-radius: 50%; }
+.auto-timer-status.is-running > span { color: #216247; }
+.auto-timer-status.is-running > span i { background: #3d9a6d; box-shadow: 0 0 0 4px rgba(61, 154, 109, .13); }
+.auto-timer-status small { color: var(--muted); font-size: 10px; }
+
 .section-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .section-title span { color: var(--green-2); font-size: 12px; font-weight: 800; letter-spacing: .16em; }
 .section-title h2 { margin: 6px 0 0; font: 30px Georgia, "Yu Mincho", serif; }
@@ -116,6 +123,11 @@ progress { width: 100%; height: 9px; accent-color: var(--stage-color, var(--gree
 .study-summary .stat.study-year { background: #faf9f5; border-color: #ebe7dc; }
 .study-chart { height: 250px; margin-top: 28px; padding: 12px 4px 0; display: grid; grid-template-columns: repeat(var(--study-period-count, 14), minmax(42px, 1fr)); gap: 8px; overflow-x: auto; border-top: 1px solid var(--line); }
 .study-bar-column { min-width: 38px; height: 220px; display: grid; grid-template-rows: 1fr 24px; align-items: flex-end; text-align: center; }
+.study-chart.study-chart-monthly { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: clamp(2px, .7vw, 8px); overflow-x: hidden; }
+.study-chart-monthly .study-bar-column { min-width: 0; }
+.study-chart-monthly .study-bar-value { font-size: clamp(7px, 1vw, 10px); }
+.study-chart-monthly .study-bar-label { font-size: clamp(7px, 1vw, 10px); }
+
 .study-bar-track { position: relative; height: 182px; padding-top: 24px; display: flex; align-items: end; justify-content: center; border-bottom: 1px solid #d7e1dc; }
 .study-bar-value { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); color: var(--ink); font-size: 10px; font-weight: 800; white-space: nowrap; }
 .study-bar { width: min(24px, 72%); min-height: 3px; background: linear-gradient(180deg, #4f9879, var(--green)); border-radius: 6px 6px 2px 2px; transition: height .25s ease; }
@@ -190,4 +202,11 @@ footer { padding: 34px; color: #9cb3aa; text-align: center; background: var(--gr
   .study-filter-row { width: 100%; justify-content: flex-start; }
   .study-history-tools label { justify-content: space-between; width: 100%; }
   .study-chart { grid-template-columns: repeat(var(--study-period-count, 14), 42px); }
+  .auto-timer-status { width: 100%; align-items: flex-start; text-align: left; }
+  .study-chart.study-chart-monthly { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 2px; padding-right: 0; padding-left: 0; overflow-x: hidden; }
+  .study-chart-monthly .study-bar-column { min-width: 0; }
+  .study-chart-monthly .study-bar-track { padding-top: 22px; }
+  .study-chart-monthly .study-bar-value { font-size: clamp(6px, 1.9vw, 8px); }
+  .study-chart-monthly .study-bar-label { font-size: clamp(7px, 2vw, 9px); }
+
 }
