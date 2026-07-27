@@ -475,6 +475,48 @@ function StudyHistory({ dailySeconds, now }) {
   );
 }
 
+function ShokenStudy({ rows }) {
+  const options = ["所見の習得方法", "2025年度", "2024年度", "2023年度", "2022年度", "2021年度", "2020年度", "2019年度", "2018年度"];
+  const [selected, setSelected] = useState(options[0]);
+  const year = selected.replace("年度", "");
+  const selectedRows = rows.filter((row) => String(row.年度).replace(/\.0$/, "") === year);
+
+  return (
+    <>
+      <div className="page-heading"><span>ESSAY STUDY</span><h2>所見で学ぶ</h2><p>問題文から論点を再現する練習を行います。</p></div>
+      <section className="filter-panel shoken-select">
+        <label>選択
+          <select value={selected} onChange={(event) => setSelected(event.target.value)}>
+            {options.map((option) => <option key={option}>{option}</option>)}
+          </select>
+        </label>
+      </section>
+      {selected === "所見の習得方法" ? (
+        <section className="surface shoken-guide">
+          <h2>所見の習得方法</h2>
+          <p>所見は、問題文を見たときに論点を思い出し、一定の型で書けるようにすることが重要です。</p>
+          <h3>1．年度ごとの問題と論点を覚える</h3>
+          <p>各年度の問題文と論点を繰り返し見て、何がどう問われたかを整理します。テーマが違っても、使う視点には共通点があります。</p>
+          <h3>2．中問を丁寧に学ぶ</h3>
+          <p>「何を聞かれているか」「どの順で答えるか」を確認し、論点を分けて順序立てて書く力を養います。</p>
+          <h3>3．考えるための型を持つ</h3>
+          <p>契約者保護、健全性、公平性、収益性、実務負荷、説明責任などの視点から、問題に応じた論点を組み立てます。</p>
+        </section>
+      ) : selectedRows.length ? (
+        <div className="shoken-list">
+          {selectedRows.map((row, index) => (
+            <article className="question-card shoken-card" key={`${row.id}-${index}`}>
+              <div className="question-meta"><span>{selected}</span>{row.問題番号 && <span>{row.問題番号}</span>}</div>
+              <h2>問題文</h2><div className="multiline">{row.問題文}</div>
+              <h2>論点</h2><div className="multiline answer-panel">{row.論点}</div>
+            </article>
+          ))}
+        </div>
+      ) : <div className="empty">{selected}のデータはまだ登録されていません。</div>}
+    </>
+  );
+}
+
 export default function Home() {
   const [questions, setQuestions] = useState([]);
   const [shoken, setShoken] = useState([]);
