@@ -77,7 +77,7 @@ function recentJapanDays(count, timestamp) {
 
 const STUDY_VIEW_OPTIONS = {
   daily: { label: "日次", periods: 14 },
-  weekly: { label: "週次", periods: 12 },
+  weekly: { label: "週次" },
   monthly: { label: "月次", periods: 12 },
 };
 
@@ -96,7 +96,16 @@ function sumStudySeconds(dailySeconds, startKey, endKey) {
   }, 0);
 }
 
-function buildStudyPeriods(viewMode, dailySeconds, timestamp) {
+function availableStudyYears(dailySeconds, currentYear) {
+  return [...new Set([
+    currentYear,
+    ...Object.keys(dailySeconds)
+      .filter((key) => /^\d{4}-\d{2}-\d{2}$/.test(key))
+      .map((key) => Number(key.slice(0, 4))),
+  ])].sort((a, b) => b - a);
+}
+
+function buildStudyPeriods(viewMode, dailySeconds, timestamp, selectedYear) {
   const currentDay = new Date(timestamp + 9 * 60 * 60 * 1000);
   currentDay.setUTCHours(0, 0, 0, 0);
 
@@ -113,17 +122,27 @@ function buildStudyPeriods(viewMode, dailySeconds, timestamp) {
     });
   }
 
+  const year = Number(selectedYear) || currentDay.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(year, 0, 1));
+  const yearEnd = new Date(Date.UTC(year, 11, 31));
+
   if (viewMode === "weekly") {
-    const daysSinceMonday = (currentDay.getUTCDay() + 6) % 7;
-    const currentMonday = new Date(currentDay.getTime() - daysSinceMonday * 86400000);
-    return Array.from({ length: STUDY_VIEW_OPTIONS.weekly.periods }, (_, index) => {
-      const start = new Date(currentMonday.getTime() - (STUDY_VIEW_OPTIONS.weekly.periods - 1 - index) * 7 * 86400000);
-      const end = new Date(start.getTime() + 6 * 86400000);
-      const startKey = utcDateKey(start);
-      const endKey = utcDateKey(end);
+    const daysSinceMonday = (yearStart.getUTCDay() + 6) % 7;
+    const firstMonday = new Date(yearStart.getTime() - daysSinceMonday * 86400000);
+    const lastWeekDays = (7 - ((yearEnd.getUTCDay() + 6) % 7) - 1) % 7;
+    const lastSunday = new Date(yearEnd.getTime() + lastWeekDays * 86400000);
+    const periodCount = Math.floor((lastSunday.getTime() - firstMonday.getTime()) / (7 * 86400000)) + 1;
+
+    return Array.from({ length: periodCount }, (_, index) => {
+      const weekStart = new Date(firstMonday.getTime() + index * 7 * 86400000);
+      const weekEnd = new Date(weekStart.getTime() + 6 * 86400000);
+      const clippedStart = weekStart < yearStart ? yearStart : weekStart;
+      const clippedEnd = weekEnd > yearEnd ? yearEnd : weekEnd;
+      const startKey = utcDateKey(clippedStart);
+      const endKey = utcDateKey(clippedEnd);
       return {
-        key: `week-${startKey}`,
-        label: `${monthDayLabel(start)}週`,
+        key: `week-${utcDateKey(weekStart)}`,
+        label: monthDayLabel(clippedStart),
         title: `${startKey}〜${endKey}`,
         seconds: sumStudySeconds(dailySeconds, startKey, endKey),
       };
@@ -131,15 +150,14 @@ function buildStudyPeriods(viewMode, dailySeconds, timestamp) {
   }
 
   return Array.from({ length: STUDY_VIEW_OPTIONS.monthly.periods }, (_, index) => {
-    const offset = STUDY_VIEW_OPTIONS.monthly.periods - 1 - index;
-    const start = new Date(Date.UTC(currentDay.getUTCFullYear(), currentDay.getUTCMonth() - offset, 1));
-    const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0));
+    const start = new Date(Date.UTC(year, index, 1));
+    const end = new Date(Date.UTC(year, index + 1, 0));
     const startKey = utcDateKey(start);
     const endKey = utcDateKey(end);
     return {
       key: `month-${startKey}`,
-      label: `${String(start.getUTCFullYear()).slice(-2)}/${start.getUTCMonth() + 1}`,
-      title: `${start.getUTCFullYear()}年${start.getUTCMonth() + 1}月`,
+      label: `${index + 1}月`,
+      title: `${year}年${index + 1}月`,
       seconds: sumStudySeconds(dailySeconds, startKey, endKey),
     };
   });
@@ -147,7 +165,7 @@ function buildStudyPeriods(viewMode, dailySeconds, timestamp) {
 
 function formatStudyBarValue(totalSeconds) {
   const minutes = Math.round((totalSeconds || 0) / 60);
-  if (minutes < 1) return "";
+  if (minutes < 1) return "0m";
   if (minutes < 120) return `${minutes}m`;
   const hours = totalSeconds / 3600;
   return hours < 10 ? `${hours.toFixed(1)}h` : `${Math.round(hours)}h`;
@@ -413,47 +431,60 @@ function Dashboard({ questions, progress }) {
 
 function StudyHistory({ dailySeconds, now }) {
   const [viewMode, setViewMode] = useState("daily");
-  const days = recentJapanDays(14, now);
-  const lastSeven = days.slice(-7);
-  const todayKey = days[days.length - 1];
+  const currentYear = Number(japanDateKey(now).slice(0, 4));
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const yearOptions = availableStudyYears(dailySeconds, currentYear);
+  const todayKey = japanDateKey(now);
   const todaySeconds = Number(dailySeconds[todayKey]) || 0;
-  const weeklySeconds = lastSeven.reduce((sum, key) => sum + (Number(dailySeconds[key]) || 0), 0);
-  const periods = buildStudyPeriods(viewMode, dailySeconds, now);
+
+  const currentDay = new Date(now + 9 * 60 * 60 * 1000);
+  const monthStart = utcDateKey(new Date(Date.UTC(currentDay.getUTCFullYear(), currentDay.getUTCMonth(), 1)));
+  const monthEnd = utcDateKey(new Date(Date.UTC(currentDay.getUTCFullYear(), currentDay.getUTCMonth() + 1, 0)));
+  const yearStart = `${currentYear}-01-01`;
+  const yearEnd = `${currentYear}-12-31`;
+  const monthlySeconds = sumStudySeconds(dailySeconds, monthStart, monthEnd);
+  const yearlySeconds = sumStudySeconds(dailySeconds, yearStart, yearEnd);
+
+  const periods = buildStudyPeriods(viewMode, dailySeconds, now, selectedYear);
   const maxSeconds = Math.max(60, ...periods.map((period) => period.seconds));
   const viewLabel = STUDY_VIEW_OPTIONS[viewMode].label;
-
-  const streakDays = recentJapanDays(366, now);
-  let streak = 0;
-  let cursor = streakDays.length - 1;
-  if ((Number(dailySeconds[streakDays[cursor]]) || 0) === 0) cursor -= 1;
-  while (cursor >= 0 && (Number(dailySeconds[streakDays[cursor]]) || 0) > 0) {
-    streak += 1;
-    cursor -= 1;
-  }
 
   return (
     <section className="surface study-history">
       <div className="section-title">
         <div><span>STUDY LOG</span><h2>日々の勉強記録</h2></div>
         <div className="study-history-tools">
-          <label>表示単位
-            <select
-              aria-label="勉強記録の表示単位"
-              value={viewMode}
-              onChange={(event) => setViewMode(event.target.value)}
-            >
-              {Object.entries(STUDY_VIEW_OPTIONS).map(([value, option]) => (
-                <option key={value} value={value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-          <p>学習時間はこの端末に日付別で自動保存されます。</p>
+          <div className="study-filter-row">
+            <label>表示単位
+              <select
+                aria-label="勉強記録の表示単位"
+                value={viewMode}
+                onChange={(event) => setViewMode(event.target.value)}
+              >
+                {Object.entries(STUDY_VIEW_OPTIONS).map(([value, option]) => (
+                  <option key={value} value={value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            {viewMode !== "daily" && (
+              <label>表示年
+                <select
+                  aria-label="勉強記録の表示年"
+                  value={selectedYear}
+                  onChange={(event) => setSelectedYear(Number(event.target.value))}
+                >
+                  {yearOptions.map((year) => <option key={year} value={year}>{year}年</option>)}
+                </select>
+              </label>
+            )}
+          </div>
+          <p>週次・月次では、選択した年の1月から12月まで確認できます。</p>
         </div>
       </div>
       <div className="study-summary">
         <Stat value={formatStudyDuration(todaySeconds)} label="今日" tone="green" />
-        <Stat value={formatStudyDuration(weeklySeconds)} label="直近7日" />
-        <Stat value={`${streak}日`} label="連続学習" tone="yellow" />
+        <Stat value={formatStudyDuration(monthlySeconds)} label="今月の累計勉強時間" />
+        <Stat value={formatStudyDuration(yearlySeconds)} label="今年の勉強時間" tone="yellow" />
       </div>
       <div
         className="study-chart"
@@ -464,8 +495,10 @@ function StudyHistory({ dailySeconds, now }) {
           const height = period.seconds ? Math.max(8, period.seconds / maxSeconds * 100) : 2;
           return (
             <div className="study-bar-column" key={period.key} title={`${period.title}: ${formatStudyDuration(period.seconds)}`}>
-              <span className="study-bar-value">{formatStudyBarValue(period.seconds)}</span>
-              <div className="study-bar-track"><div className="study-bar" style={{ height: `${height}%` }} /></div>
+              <div className="study-bar-track">
+                <span className="study-bar-value">{formatStudyBarValue(period.seconds)}</span>
+                <div className="study-bar" style={{ height: `${height}%` }} />
+              </div>
               <span className="study-bar-label">{period.label}</span>
             </div>
           );
