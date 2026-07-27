@@ -821,8 +821,6 @@ export default function Home() {
             <section className={`hero daily-hero ${todayComplete ? "is-complete" : "has-pending"}`}>
               <div>
                 <span className="today">{today.iso}（{today.weekday}）</span>
-                <div className="daily-cycle-badge"><span>{assignmentModeLabel}</span><strong>{assignmentDayLabel}</strong></div>
-                <AssignmentModeSelect mode={assignmentMode} onChange={changeAssignmentMode} />
                 <h2>{todayComplete ? "今日の課題、完了です。" : "今日も、1問ずつ確実に。"}</h2>
                 <p className="daily-task-progress-copy">
                   {todayComplete
@@ -831,13 +829,17 @@ export default function Home() {
                 </p>
                 <p>学習状況はこの端末に自動保存されます。解答を確認し、理解度を記録しましょう。</p>
               </div>
-              <button
-                className={`daily-task-button ${todayComplete ? "is-complete" : ""}`}
-                onClick={() => openQuestion(nextTodayQuestion?.id || "", "今日の課題")}
-              >
-                <span>{todayComplete ? "本日分完了" : "今日の課題"}</span>
-                <strong>{todayComplete ? "もう一度確認する →" : `残り${todayRemaining}問を進める →`}</strong>
-              </button>
+              <div className="daily-task-actions">
+                <button
+                  className={`daily-task-button ${todayComplete ? "is-complete" : ""}`}
+                  onClick={() => openQuestion(nextTodayQuestion?.id || "", "今日の課題")}
+                >
+                  <span>{todayComplete ? "本日分完了" : "今日の課題"}</span>
+                  <strong>{todayComplete ? "もう一度確認する →" : `残り${todayRemaining}問を進める →`}</strong>
+                </button>
+                <div className="daily-cycle-badge"><span>{assignmentModeLabel}</span><strong>{assignmentDayLabel}</strong></div>
+                <AssignmentModeSelect mode={assignmentMode} onChange={changeAssignmentMode} />
+              </div>
             </section>
             <section className="surface"><h2>学習ダッシュボード</h2><Dashboard
               questions={questions}
