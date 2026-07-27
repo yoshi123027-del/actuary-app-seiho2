@@ -301,15 +301,21 @@ function useStudyTimer(storageKey) {
   };
 }
 
-function Stat({ value, label, tone = "" }) {
+function Stat({ value, label, tone = "", onClick, disabled = false }) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div className={`stat ${tone}`}>
+    <Tag
+      className={`stat ${tone} ${onClick ? "stat-action" : ""}`}
+      onClick={onClick}
+      disabled={onClick ? disabled : undefined}
+      type={onClick ? "button" : undefined}
+    >
       <strong>{value}</strong>
       <span>{label}</span>
-    </div>
+      {onClick && <small>{disabled ? "該当する問題はありません" : "クリックして演習する →"}</small>}
+    </Tag>
   );
 }
-
 function Filters({ questions, filters, setFilters, showKeyword = false }) {
   const chapters = [...new Set(questions.map((q) => q.章).filter(Boolean))].sort((a, b) => natural(a) - natural(b));
   const types = [...new Set(questions.map((q) => q.問題種別).filter(Boolean))];
@@ -402,22 +408,58 @@ function QuestionCard({ rows, currentId, setCurrentId, progress, rate, toggleRev
   );
 }
 
-function Dashboard({ questions, progress }) {
+function understandingStage(percent) {
+  if (percent >= 100) {
+    return { key: "complete", label: "完全理解", icon: "★", message: "全問題を理解済みにしました。積み上げた力を、定期的な復習で定着させましょう。" };
+  }
+  if (percent >= 75) {
+    return { key: "final", label: "仕上げ", icon: "◆", message: "ゴールが見えてきました。要注意問題を解き直して、理解の穴を埋めましょう。" };
+  }
+  if (percent >= 50) {
+    return { key: "steady", label: "折り返し突破", icon: "▲", message: "半分を超えました。この調子で、理解済みの範囲を着実に広げましょう。" };
+  }
+  if (percent >= 25) {
+    return { key: "growing", label: "成長中", icon: "●", message: "学習のペースができています。一問ずつ理解に変えていきましょう。" };
+  }
+  return { key: "start", label: "スタート", icon: "○", message: "最初の一歩です。理解済みを増やして、学習の土台を作りましょう。" };
+}
+
+function Dashboard({ questions, progress, onOpenCaution, onOpenReview }) {
   const understood = questions.filter((q) => progress.ratings[q.id] === "理解").length;
   const caution = questions.filter((q) => progress.ratings[q.id] === "要注意").length;
   const review = questions.filter((q) => progress.reviewFlags[q.id]).length;
   const percent = questions.length ? Math.round(understood / questions.length * 100) : 0;
+  const remaining = Math.max(0, questions.length - understood);
+  const stage = understandingStage(percent);
   const chapters = [...new Set(questions.map((q) => q.章).filter(Boolean))].sort((a, b) => natural(a) - natural(b));
 
   return (
-    <>
+    <div className={`learning-dashboard stage-${stage.key}`}>
+      <div className="dashboard-status">
+        <div><span>UNDERSTANDING LEVEL</span><h3>{stage.label}</h3></div>
+        <strong><b>{stage.icon}</b>{percent}%</strong>
+      </div>
+      <p className="motivation-message">{stage.message}</p>
       <div className="stats">
         <Stat value={questions.length} label="全問題" />
         <Stat value={understood} label="理解" tone="green" />
-        <Stat value={caution} label="要注意" tone="yellow" />
-        <Stat value={review} label="後で復習" tone="red" />
+        <Stat value={caution} label="要注意" tone="yellow" onClick={onOpenCaution} disabled={caution === 0} />
+        <Stat value={review} label="後で復習" tone="red" onClick={onOpenReview} disabled={review === 0} />
       </div>
-      <div className="progress-block"><div><span>全体理解度</span><strong>{percent}%</strong></div><progress value={percent} max="100" /></div>
+      <div className="progress-block">
+        <div><span>全体理解度</span><strong>{percent}%</strong></div>
+        <div
+          className="understanding-track"
+          role="progressbar"
+          aria-label="全体理解度"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow={percent}
+        >
+          <div className="understanding-fill" style={{ width: `${percent}%` }} />
+        </div>
+        <small>{remaining ? `あと${remaining}問を理解すると全問達成です` : "全問理解を達成しました！"}</small>
+      </div>
       <div className="chapter-grid">
         {chapters.map((chapter) => {
           const rows = questions.filter((q) => q.章 === chapter);
@@ -425,10 +467,20 @@ function Dashboard({ questions, progress }) {
           return <div className="chapter-progress" key={chapter}><span>第{chapter}章</span><strong>{done}/{rows.length}</strong><progress value={done} max={rows.length} /></div>;
         })}
       </div>
-    </>
+    </div>
   );
 }
 
+function QuestionQueue({ rows, currentId, setCurrentId, progress, rate, toggleReview, eyebrow, title, description, emptyMessage }) {
+  return (
+    <>
+      <div className="page-heading"><span>{eyebrow}</span><h2>{title}</h2><p>{description}（現在{rows.length}問）</p></div>
+      {rows.length ? (
+        <QuestionCard rows={rows} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} />
+      ) : <div className="empty queue-complete">{emptyMessage}</div>}
+    </>
+  );
+}
 function StudyHistory({ dailySeconds, now }) {
   const [viewMode, setViewMode] = useState("monthly");
   const currentYear = Number(japanDateKey(now).slice(0, 4));
@@ -595,6 +647,9 @@ export default function Home() {
     return grouped.length ? grouped : questions;
   }, [questions, today.group]);
 
+  const cautionRows = questions.filter((q) => progress.ratings[q.id] === "要注意");
+  const reviewRows = questions.filter((q) => progress.reviewFlags[q.id]);
+
   const examDays = daysUntil(appConfig.examDate);
 
   const openQuestion = (id, targetMenu) => {
@@ -621,7 +676,12 @@ export default function Home() {
               <div><span className="today">{today.iso}（{today.weekday}）</span><h2>今日も、一問ずつ確実に。</h2><p>学習状況はこの端末に自動保存されます。解答を確認し、理解度を記録しましょう。</p></div>
               <button onClick={() => openQuestion(todayRows.find((q) => !progress.ratings[q.id])?.id || todayRows[0]?.id, "今日の課題")}>今日の課題を始める →</button>
             </section>
-            <section className="surface"><h2>学習ダッシュボード</h2><Dashboard questions={questions} progress={progress} /></section>
+            <section className="surface"><h2>学習ダッシュボード</h2><Dashboard
+              questions={questions}
+              progress={progress}
+              onOpenCaution={() => openQuestion(cautionRows[0]?.id || "", "要注意問題")}
+              onOpenReview={() => openQuestion(reviewRows[0]?.id || "", "後で復習問題")}
+            /></section>
             <section className="surface timer">
               <div><span>今日の勉強時間</span><strong>{formatClock(studyTimer.todaySeconds)}</strong></div>
               <button onClick={studyTimer.toggle}>{studyTimer.running ? "学習終了" : "学習開始"}</button>
@@ -631,6 +691,32 @@ export default function Home() {
         )}
 
         {menu === "今日の課題" && <><div className="page-heading"><span>{today.weekday}曜グループ</span><h2>今日の課題</h2><p>{todayRows.length}問から取り組みます。</p></div><QuestionCard rows={todayRows} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} /></>}
+
+        {menu === "要注意問題" && <QuestionQueue
+          rows={cautionRows}
+          currentId={currentId}
+          setCurrentId={setCurrentId}
+          progress={progress}
+          rate={rate}
+          toggleReview={toggleReview}
+          eyebrow="CAUTION REVIEW"
+          title="要注意問題を解く"
+          description="「要注意」にした問題だけを続けて演習します。理解できたら自己評価を「理解」に変更しましょう。"
+          emptyMessage="要注意問題をすべて解消しました。ホームのダッシュボードから次の学習に進みましょう。"
+        />}
+
+        {menu === "後で復習問題" && <QuestionQueue
+          rows={reviewRows}
+          currentId={currentId}
+          setCurrentId={setCurrentId}
+          progress={progress}
+          rate={rate}
+          toggleReview={toggleReview}
+          eyebrow="REVIEW STOCK"
+          title="後で復習する問題"
+          description="復習フラグを付けた問題だけを続けて演習します。復習後はフラグを外せます。"
+          emptyMessage="復習ストックをすべて完了しました。ホームのダッシュボードから次の学習に進みましょう。"
+        />}
 
         {menu === "章ごとに学ぶ" && <><div className="page-heading"><span>CHAPTER STUDY</span><h2>章ごとに学ぶ</h2><p>章・問題種別・年度で絞り込めます。</p></div><Filters questions={questions} filters={filters} setFilters={setFilters} /><QuestionCard rows={filtered} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} /></>}
 
