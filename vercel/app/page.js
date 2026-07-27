@@ -6,6 +6,21 @@ import { appConfig } from "./config";
 const EMPTY_PROGRESS = { ratings: {}, reviewFlags: {}, history: {} };
 const DAY_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
 
+const TWO_WEEK_CYCLE_DAYS = 14;
+const TWO_WEEK_CYCLE_START = Date.UTC(2026, 0, 1) / 86400000;
+
+function twoWeekCycleDay(dateKey) {
+  const [year, month, day] = String(dateKey).split("-").map(Number);
+  const serial = Date.UTC(year, month - 1, day) / 86400000;
+  const offset = Math.floor(serial - TWO_WEEK_CYCLE_START);
+  return ((offset % TWO_WEEK_CYCLE_DAYS) + TWO_WEEK_CYCLE_DAYS) % TWO_WEEK_CYCLE_DAYS;
+}
+
+function ratedOnDate(progress, id, dateKey) {
+  const timestamp = Date.parse(progress.history[id]?.lastRatedAt || "");
+  return Number.isFinite(timestamp) && japanDateKey(timestamp) === dateKey;
+}
+
 function natural(value) {
   const match = String(value ?? "").match(/\d+/);
   return match ? Number(match[0]) : 9999;
@@ -711,10 +726,15 @@ export default function Home() {
       && (!keyword || [q.問題文, q.解答, q.解説].join(" ").toLowerCase().includes(keyword));
   }), [questions, filters]);
 
-  const todayRows = useMemo(() => {
-    const grouped = questions.filter((q) => q.曜日グループ === today.group);
-    return grouped.length ? grouped : questions;
-  }, [questions, today.group]);
+  const todayCycleDay = twoWeekCycleDay(today.iso);
+  const todayRows = useMemo(
+    () => questions.filter((_, index) => index % TWO_WEEK_CYCLE_DAYS === todayCycleDay),
+    [questions, todayCycleDay],
+  );
+  const todayCompleted = todayRows.filter((q) => ratedOnDate(progress, q.id, today.iso)).length;
+  const todayRemaining = Math.max(0, todayRows.length - todayCompleted);
+  const todayComplete = todayRows.length > 0 && todayRemaining === 0;
+  const nextTodayQuestion = todayRows.find((q) => !ratedOnDate(progress, q.id, today.iso)) || todayRows[0];
 
   const cautionRows = questions.filter((q) => progress.ratings[q.id] === "要注意");
   const reviewRows = questions.filter((q) => progress.reviewFlags[q.id]);
@@ -736,7 +756,10 @@ export default function Home() {
     <div className="app-shell">
       <header className="site-header">
         <div><span className="eyebrow">ACTUARIAL EXAM STUDY</span><h1>アクチュアリー2次試験 <b>{appConfig.subject}</b></h1></div>
-        <div className="exam-count"><span>試験まで</span><strong>{examDays > 0 ? examDays : 0}</strong><span>日</span></div>
+        <div className="exam-count">
+          <span>試験まで</span>
+          <div><strong>{examDays > 0 ? examDays : 0}</strong><span>日</span></div>
+        </div>
       </header>
 
       <nav className="main-nav" aria-label="メインメニュー">
@@ -747,9 +770,25 @@ export default function Home() {
         {loadingError && <div className="error">{loadingError}</div>}
         {menu === "ホーム" && (
           <>
-            <section className="hero">
-              <div><span className="today">{today.iso}（{today.weekday}）</span><h2>今日も、一問ずつ確実に。</h2><p>学習状況はこの端末に自動保存されます。解答を確認し、理解度を記録しましょう。</p></div>
-              <button onClick={() => openQuestion(todayRows.find((q) => !progress.ratings[q.id])?.id || todayRows[0]?.id, "今日の課題")}>今日の課題を始める →</button>
+            <section className={`hero daily-hero ${todayComplete ? "is-complete" : "has-pending"}`}>
+              <div>
+                <span className="today">{today.iso}（{today.weekday}）</span>
+                <div className="daily-cycle-badge"><span>2週間で全問題を一周</span><strong>DAY {todayCycleDay + 1} / 14</strong></div>
+                <h2>{todayComplete ? "今日の課題、完了です。" : "今日の分を終えて、2週間で一周。"}</h2>
+                <p className="daily-task-progress-copy">
+                  {todayComplete
+                    ? `本日の${todayRows.length}問を完了しました。`
+                    : `本日は${todayCompleted} / ${todayRows.length}問完了。残り${todayRemaining}問です。`}
+                </p>
+                <p>学習状況はこの端末に自動保存されます。解答を確認し、理解度を記録しましょう。</p>
+              </div>
+              <button
+                className={`daily-task-button ${todayComplete ? "is-complete" : ""}`}
+                onClick={() => openQuestion(nextTodayQuestion?.id || "", "今日の課題")}
+              >
+                <span>{todayComplete ? "本日分完了" : "今日の課題"}</span>
+                <strong>{todayComplete ? "もう一度確認する →" : `残り${todayRemaining}問を進める →`}</strong>
+              </button>
             </section>
             <section className="surface"><h2>学習ダッシュボード</h2><Dashboard
               questions={questions}
@@ -769,7 +808,30 @@ export default function Home() {
           </>
         )}
 
-        {menu === "今日の課題" && <><div className="page-heading"><span>{today.weekday}曜グループ</span><h2>今日の課題</h2><p>{todayRows.length}問から取り組みます。</p></div><QuestionCard rows={todayRows} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} /></>}
+        {menu === "今日の課題" && (
+          <>
+            <div className="page-heading today-task-heading">
+              <span>14-DAY STUDY CYCLE · DAY {todayCycleDay + 1} / 14</span>
+              <h2>今日の課題</h2>
+              <p>全問題を14日間に均等配分しています。毎日の課題を終えると、2週間で全問題を一周できます。</p>
+              <div className={`today-task-meter ${todayComplete ? "is-complete" : ""}`}>
+                <div><span>本日の進捗</span><strong>{todayCompleted} / {todayRows.length}問</strong></div>
+                <div
+                  className="today-task-track"
+                  role="progressbar"
+                  aria-label="今日の課題の進捗"
+                  aria-valuemin="0"
+                  aria-valuemax={todayRows.length}
+                  aria-valuenow={todayCompleted}
+                >
+                  <i style={{ width: `${todayRows.length ? todayCompleted / todayRows.length * 100 : 0}%` }} />
+                </div>
+                <small>{todayComplete ? "本日の課題を完了しました。" : `今日の残りは${todayRemaining}問です。`}</small>
+              </div>
+            </div>
+            <QuestionCard rows={todayRows} currentId={currentId} setCurrentId={setCurrentId} progress={progress} rate={rate} toggleReview={toggleReview} />
+          </>
+        )}
 
         {menu === "要注意問題" && <QuestionQueue
           rows={cautionRows}
