@@ -776,13 +776,9 @@ export default function Home() {
   const todayRemaining = Math.max(0, todayRows.length - todayCompleted);
   const todayComplete = todayRows.length > 0 && todayRemaining === 0;
   const nextTodayQuestion = todayRows.find((q) => !viewedOnDate(progress, q.id, today.iso)) || todayRows[0];
-  const assignmentModeLabel = assignmentMode === "one-week" ? "1週間で全問題を一周" : "2週間で全問題を一周";
-  const assignmentDayLabel = assignmentMode === "one-week"
-    ? `GROUP ${todayGroupNumbers[0]} + ${todayGroupNumbers[1]}`
-    : `GROUP ${todayCycleGroup} / 14`;
   const assignmentDescription = assignmentMode === "one-week"
-    ? `本日は曜日グループ${todayGroupNumbers[0]}と${todayGroupNumbers[1]}をまとめて復習します。毎日進めると1週間で全問題を一周できます。`
-    : `曜日グループ1〜14を順に進めます。毎日の課題を終えると2週間で全問題を一周できます。`;
+    ? "今日の問題をすべて進めると、1週間で全問題を一周できます。"
+    : "毎日の課題を終えると、2週間で全問題を一周できます。";
 
   const cautionRows = questions.filter((q) => progress.ratings[q.id] === "要注意");
   const reviewRows = questions.filter((q) => progress.reviewFlags[q.id]);
@@ -837,7 +833,6 @@ export default function Home() {
                   <span>{todayComplete ? "本日分完了" : "今日の課題"}</span>
                   <strong>{todayComplete ? "もう一度確認する →" : `残り${todayRemaining}問を進める →`}</strong>
                 </button>
-                <div className="daily-cycle-badge"><span>{assignmentModeLabel}</span><strong>{assignmentDayLabel}</strong></div>
                 <AssignmentModeSelect mode={assignmentMode} onChange={changeAssignmentMode} />
               </div>
             </section>
@@ -862,7 +857,7 @@ export default function Home() {
         {menu === "今日の課題" && (
           <>
             <div className="page-heading today-task-heading">
-              <span>{assignmentMode === "one-week" ? `7-DAY REVIEW · ${assignmentDayLabel}` : `14-DAY STUDY CYCLE · ${assignmentDayLabel}`}</span>
+              <span>{assignmentMode === "one-week" ? "7-DAY REVIEW" : "14-DAY STUDY CYCLE"}</span>
               <h2>今日の課題</h2>
               <p>{assignmentDescription}</p>
               <div className={`today-task-meter ${todayComplete ? "is-complete" : ""}`}>
