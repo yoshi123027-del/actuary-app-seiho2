@@ -1,0 +1,69 @@
+.answerView {
+  margin-top: 22px;
+  border-top: 1px solid #dce7e1;
+}
+
+.section {
+  padding: 22px 0 4px;
+}
+
+.section + .section {
+  margin-top: 12px;
+  border-top: 1px solid #dce7e1;
+}
+
+.section > h2,
+.answerHeading h2 {
+  margin: 0 0 14px;
+  color: #153f31;
+  font: 700 1.08rem/1.5 Georgia, "Yu Mincho", serif;
+}
+
+.answerHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 18px;
+  margin-bottom: 12px;
+}
+
+.answerHeading h2 { margin-bottom: 0; }
+.answerHeading span { color: #71837b; font-size: .72rem; }
+
+.text {
+  color: #2b4138;
+  font-size: .86rem;
+  line-height: 1.82;
+  overflow-wrap: anywhere;
+}
+
+.text h3 {
+  margin: 18px 0 5px;
+  color: #1d5b43;
+  font-size: .89rem;
+  line-height: 1.55;
+}
+
+.text h3:first-child { margin-top: 0; }
+.text p { margin: 0 0 10px; }
+
+.bullet {
+  position: relative;
+  padding-left: 1.15em;
+}
+
+.bullet::before {
+  position: absolute;
+  left: .15em;
+  content: "・";
+  color: #2f8764;
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .section { padding-top: 18px; }
+  .text { font-size: .82rem; line-height: 1.76; }
+  .section > h2,
+  .answerHeading h2 { font-size: 1rem; }
+}
