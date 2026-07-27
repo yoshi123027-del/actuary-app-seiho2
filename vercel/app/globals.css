@@ -35,27 +35,28 @@ main { width: min(1180px, calc(100% - 40px)); margin: 36px auto 80px; }
 .surface, .question-card, .filter-panel, .timer { margin-top: 24px; padding: clamp(22px, 4vw, 38px); background: white; border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
 .surface > h2 { margin-top: 0; }
 .learning-dashboard {
-  --stage-color: #85958e;
-  --stage-dark: #50625b;
-  --stage-soft: #edf1ef;
-  --stage-glow: rgba(92, 112, 103, .22);
+  --stage-color: #a7cbb7;
+  --stage-dark: #4d705d;
+  --stage-soft: #f0f7f3;
+  --stage-glow: rgba(105, 154, 126, .18);
 }
-.learning-dashboard.stage-growing { --stage-color: #4d79b8; --stage-dark: #2b4f82; --stage-soft: #eaf1fb; --stage-glow: rgba(77, 121, 184, .23); }
-.learning-dashboard.stage-steady { --stage-color: #2d8c86; --stage-dark: #145e59; --stage-soft: #e1f4f2; --stage-glow: rgba(45, 140, 134, .24); }
-.learning-dashboard.stage-final { --stage-color: #2e8a5f; --stage-dark: #17623f; --stage-soft: #e3f4ea; --stage-glow: rgba(46, 138, 95, .25); }
-.learning-dashboard.stage-complete { --stage-color: #c58d18; --stage-dark: #6d4b05; --stage-soft: #fff2c7; --stage-glow: rgba(197, 141, 24, .32); }
+.learning-dashboard.stage-growing { --stage-color: #76ad8e; --stage-dark: #356a4e; --stage-soft: #e5f2e9; --stage-glow: rgba(79, 143, 105, .21); }
+.learning-dashboard.stage-steady { --stage-color: #438f65; --stage-dark: #1f613f; --stage-soft: #d9ebdf; --stage-glow: rgba(45, 128, 81, .23); }
+.learning-dashboard.stage-final { --stage-color: #1f744d; --stage-dark: #0d4d32; --stage-soft: #cee5d7; --stage-glow: rgba(26, 105, 68, .27); }
+.learning-dashboard.stage-complete { --stage-color: #0e5a3a; --stage-dark: #073c27; --stage-soft: #d8e9df; --stage-glow: rgba(14, 90, 58, .3); }
 .dashboard-status { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 8px; }
 .dashboard-status span { color: var(--stage-dark); font-size: 11px; font-weight: 900; letter-spacing: .14em; }
 .dashboard-status h3 { margin: 5px 0 0; color: var(--stage-dark); font: 28px Georgia, "Yu Mincho", serif; }
 .dashboard-status > strong { min-width: 118px; padding: 12px 18px; color: var(--stage-dark); background: var(--stage-soft); border: 1px solid var(--stage-color); border-radius: 999px; text-align: center; font: 28px Georgia, serif; box-shadow: 0 8px 24px var(--stage-glow); }
 .dashboard-status > strong b { margin-right: 8px; font-family: inherit; }
 .motivation-message { margin: 0 0 22px; padding: 13px 16px; color: var(--stage-dark); background: linear-gradient(90deg, var(--stage-soft), transparent); border-left: 4px solid var(--stage-color); border-radius: 8px; line-height: 1.7; }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.stats { display: grid; grid-template-columns: minmax(0, 1.18fr) repeat(2, minmax(0, 1fr)); gap: 10px; }
 .stat { position: relative; width: 100%; min-height: 96px; padding: 14px 15px; color: var(--ink); background: rgba(246, 248, 247, .72); border: 1px solid #e4eae6; border-radius: 11px; text-align: left; box-shadow: none; }
 .stat strong { display: block; font: 30px Georgia, serif; line-height: 1.05; }
 .stat > span:not(.stat-icon) { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
 .stat small { display: block; margin-top: 9px; color: currentColor; font-size: 10px; font-weight: 800; }
-.learning-dashboard .stat.green { color: var(--stage-dark); background: color-mix(in srgb, var(--stage-soft) 64%, white); border-color: color-mix(in srgb, var(--stage-color) 28%, #e4eae6); }
+.learning-dashboard .stat.understanding { color: var(--stage-dark); background: color-mix(in srgb, var(--stage-soft) 68%, white); border-color: color-mix(in srgb, var(--stage-color) 34%, #e4eae6); }
+.learning-dashboard .stat.understanding strong { letter-spacing: -.025em; }
 .stat.caution { color: #a94d16; background: #fff8f3; border-color: #f0c4a7; box-shadow: inset 3px 0 #dc6a27; }
 .stat.review { color: #6548a3; background: #f8f5ff; border-color: #cfc2ee; box-shadow: inset 3px 0 #7958ba; }
 .stat.caution > span:not(.stat-icon), .stat.review > span:not(.stat-icon) { color: currentColor; font-weight: 800; }
@@ -69,7 +70,10 @@ main { width: min(1180px, calc(100% - 40px)); margin: 36px auto 80px; }
 .progress-block > small { display: block; margin-top: 9px; color: var(--muted); font-size: 12px; text-align: right; }
 .understanding-track { width: 100%; height: 14px; margin-top: 10px; overflow: hidden; background: #e6ebe8; border-radius: 999px; box-shadow: inset 0 1px 3px rgba(23, 51, 43, .09); }
 .understanding-fill { height: 100%; min-width: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--stage-color) 70%, white), var(--stage-color)); border-radius: inherit; box-shadow: 0 0 18px var(--stage-glow); transition: width .45s ease, background .35s ease; }
-.stage-complete .understanding-fill { animation: achievement-glow 1.8s ease-in-out infinite alternate; }
+.stage-complete .dashboard-status > strong { color: #5f4509; background: linear-gradient(135deg, #fff7d9, #e3efe8); border-color: #c79a32; box-shadow: 0 8px 26px rgba(150, 111, 25, .27); }
+.stage-complete .motivation-message { border-left-color: #c79a32; }
+.stage-complete .stat.understanding { border-color: #d3b96f; box-shadow: inset 3px 0 #c79a32; }
+.stage-complete .understanding-fill { background: linear-gradient(90deg, #2f8b60 0%, #0e5a3a 78%, #d3a642 100%); animation: achievement-glow 1.8s ease-in-out infinite alternate; }
 @keyframes achievement-glow { to { filter: brightness(1.15); box-shadow: 0 0 24px var(--stage-glow); } }
 progress { width: 100%; height: 9px; accent-color: var(--stage-color, var(--green-2)); }
 .chapter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; }
@@ -151,7 +155,8 @@ footer { padding: 34px; color: #9cb3aa; text-align: center; background: var(--gr
   main { width: min(100% - 24px, 1180px); margin-top: 18px; }
   .hero { align-items: flex-start; flex-direction: column; }
   .hero button { width: 100%; }
-  .stats { grid-template-columns: repeat(2, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .learning-dashboard .stat.understanding { grid-column: 1 / -1; }
   .dashboard-status { align-items: flex-start; }
   .dashboard-status > strong { min-width: 96px; padding: 10px 12px; font-size: 23px; }
   .motivation-message { font-size: 13px; }
