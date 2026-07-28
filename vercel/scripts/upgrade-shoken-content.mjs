@@ -46,3 +46,5 @@ if (answerSource !== originalAnswerSource) {
   fs.writeFileSync(answerViewPath, answerSource, "utf8");
   console.log("所見答案の補足文と字数表示を削除しました。");
 }
+
+// 本番表示の体裁統一用。
