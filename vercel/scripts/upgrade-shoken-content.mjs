@@ -7,15 +7,10 @@ const original = source;
 
 const configImport = 'import { appConfig } from "./config";';
 const answerImport = 'import ShokenAnswerView from "./ShokenAnswerView";';
-const questionsImport = 'import questionsData from "../public/questions.json";';
-const shokenImport = 'import shokenData from "../public/shoken.json";';
 
 if (!source.includes(answerImport)) {
   if (!source.includes(configImport)) throw new Error("page.js のimport位置を確認できませんでした。");
   source = source.replace(configImport, `${configImport}\n${answerImport}`);
-}
-if (!source.includes(questionsImport)) {
-  source = source.replace(answerImport, `${answerImport}\n${questionsImport}\n${shokenImport}`);
 }
 
 const oldDisplay = '              <h2>論点</h2><ShokenPoints text={row.論点} />';
@@ -25,31 +20,29 @@ if (!source.includes(newDisplay)) {
   source = source.replace(oldDisplay, newDisplay);
 }
 
-source = source.replace(
-  '  const [questions, setQuestions] = useState([]);',
-  '  const [questions, setQuestions] = useState(() => questionsData.map(normalizeRow).sort((a, b) => natural(a.id) - natural(b.id)));',
-);
-source = source.replace(
-  '  const [shoken, setShoken] = useState([]);',
-  '  const [shoken, setShoken] = useState(() => shokenData.map(normalizeRow));',
-);
-source = source.replace(
-  '      .catch(() => setShoken([]));',
-  '      .catch(() => {});',
-);
-
 if (source !== original) {
   fs.writeFileSync(pagePath, source, "utf8");
-  console.log("所見答案表示と問題データの初期読込を適用しました。");
+  console.log("生保2の所見答案表示を適用しました。");
 } else {
-  console.log("所見答案表示と問題データの初期読込は適用済みです。");
+  console.log("生保2の所見答案表示は適用済みです。");
 }
 
 let answerSource = fs.readFileSync(answerViewPath, "utf8");
-const oldNote = "1分程度で答案の骨格と加点論点を整理するメモ。本文の章立ては問題文と公式解答例の順序を優先する。";
-const newNote = "1分程度で答案の骨格と加点論点を整理するメモ。";
-if (answerSource.includes(oldNote)) {
-  answerSource = answerSource.replace(oldNote, newNote);
+const originalAnswerSource = answerSource;
+answerSource = answerSource.replace(
+  "1分程度で答案の骨格と加点論点を整理するメモ。本文の章立ては問題文と公式解答例の順序を優先する。",
+  "1分程度で答案の骨格と加点論点を整理するメモ。",
+);
+answerSource = answerSource.replace(
+  /<div className=\{styles\.answerHeading\}>\s*<h2>合格レベル答案<\/h2>\s*<span>[^<]*<\/span>\s*<\/div>/u,
+  '<div className={styles.answerHeading}><h2>合格レベル答案</h2></div>',
+);
+answerSource = answerSource.replace(
+  /<div className=\{styles\.essayHeading\}>\s*<h3>論文式答案<\/h3>\s*<span>[^<]*<\/span>\s*<\/div>/u,
+  '<div className={styles.essayHeading}><h3>論文式答案</h3></div>',
+);
+
+if (answerSource !== originalAnswerSource) {
   fs.writeFileSync(answerViewPath, answerSource, "utf8");
-  console.log("論文式の思考フレーム注記を簡略化しました。");
+  console.log("所見答案の補足文と字数表示を削除しました。");
 }
