@@ -1,0 +1,32 @@
+.commentBox {
+  margin: 26px 0 4px;
+  padding: 15px 17px 14px;
+  border: 1px solid #d5dfda;
+  border-left: 4px solid #486b5d;
+  border-radius: 10px;
+  background: #f7f8f6;
+  color: #2b4138;
+}
+
+.commentBox h3 {
+  margin: 0 0 7px;
+  color: #153f31;
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.commentBox p {
+  margin: 0;
+  font-size: .82rem;
+  line-height: 1.75;
+}
+
+@media (max-width: 720px) {
+  .commentBox {
+    margin-top: 22px;
+    padding: 13px 14px 12px;
+  }
+
+  .commentBox h3 { font-size: .86rem; }
+  .commentBox p { font-size: .79rem; }
+}
