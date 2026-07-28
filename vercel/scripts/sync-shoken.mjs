@@ -53,6 +53,17 @@ function parseCsv(text) {
     ));
 }
 
+async function readUserAnswer(id) {
+  try {
+    const url = new URL(`../../shoken-user-answers/${id}.txt`, import.meta.url);
+    const text = await readFile(url, "utf8");
+    return text.trim();
+  } catch (error) {
+    if (error?.code === "ENOENT") return "";
+    throw error;
+  }
+}
+
 const csv = await readFile(sourceUrl, "utf8");
 const sourceRecords = parseCsv(csv);
 const requiredHeaders = ["年度", "問題番号", "問題文"];
@@ -64,15 +75,20 @@ if (missingHeaders.length) {
   throw new Error("shoken.csv に必要な列がありません: " + missingHeaders.join(", "));
 }
 
-const records = sourceRecords.map((record) => {
+const records = await Promise.all(sourceRecords.map(async (record) => {
   const id = String(record.id || "");
   const answer = answerRecords[id];
   if (!answer?.フレームワークを用いた論点整理 || !answer?.合格レベル答案) {
     throw new Error(`所見答案データが未登録です: id=${id}`);
   }
+  const userAnswer = await readUserAnswer(id);
   const { 論点: _discardedOriginalPoints, ...base } = record;
-  return { ...base, ...answer };
-});
+  return {
+    ...base,
+    ...answer,
+    ...(userAnswer ? { 合格レベル答案: userAnswer } : {}),
+  };
+}));
 
 await writeFile(outputUrl, JSON.stringify(records, null, 2) + "\n", "utf8");
 console.log("shoken.csv と合格答案から " + records.length + " 件を同期しました。");
