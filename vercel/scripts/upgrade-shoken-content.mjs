@@ -47,4 +47,4 @@ if (answerSource !== originalAnswerSource) {
   console.log("所見答案の補足文と字数表示を削除しました。");
 }
 
-// 本番表示の体裁統一用。
+// 本番再デプロイ再試行: 2026-07-28 15:49 JST
