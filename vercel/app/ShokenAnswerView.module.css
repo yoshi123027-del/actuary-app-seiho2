@@ -19,7 +19,8 @@
   font: 700 1.04rem/1.5 Georgia, "Yu Mincho", serif;
 }
 
-.answerHeading {
+.answerHeading,
+.essayHeading {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -28,8 +29,16 @@
   margin-bottom: 11px;
 }
 
-.answerHeading h2 { margin-bottom: 0; }
-.answerHeading span { color: #71837b; font-size: .7rem; }
+.answerHeading h2,
+.essayHeading h3 {
+  margin-bottom: 0;
+}
+
+.answerHeading span,
+.essayHeading span {
+  color: #71837b;
+  font-size: .7rem;
+}
 
 .text {
   color: #2b4138;
@@ -38,15 +47,76 @@
   overflow-wrap: anywhere;
 }
 
-.text h3 {
+.text h3,
+.shortAnswer > h3,
+.frameworkBox h3,
+.essayHeading h3 {
   margin: 16px 0 4px;
   color: #1d5b43;
   font-size: .87rem;
   line-height: 1.5;
 }
 
-.text h3:first-child { margin-top: 0; }
-.text p { margin: 0 0 8px; }
+.text h3:first-child,
+.shortAnswer:first-of-type > h3 {
+  margin-top: 0;
+}
+
+.text p,
+.frameworkBox p {
+  margin: 0 0 8px;
+}
+
+.shortAnswer {
+  margin-bottom: 18px;
+}
+
+.frameworkBox {
+  margin: 22px 0 18px;
+  padding: 14px 16px 12px;
+  border: 1px solid #cfe1d8;
+  border-radius: 10px;
+  background: #f4f9f6;
+  color: #2b4138;
+  font-size: .82rem;
+  line-height: 1.72;
+}
+
+.frameworkBox h3 {
+  margin-top: 0;
+  margin-bottom: 7px;
+}
+
+.frameworkFlow {
+  color: #153f31;
+  letter-spacing: .01em;
+}
+
+.frameworkNote {
+  margin-top: 10px !important;
+  color: #6f8179;
+  font-size: .72rem;
+}
+
+.essayHeading {
+  margin: 20px 0 4px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #dce7e1;
+}
+
+.majorGroup {
+  margin: 22px 0 0;
+  padding-top: 2px;
+}
+
+.majorTitle {
+  margin: 0 0 10px !important;
+  padding: 7px 9px;
+  border-left: 4px solid #2f8764;
+  background: #f5f8f6;
+  color: #153f31 !important;
+  font-size: .91rem !important;
+}
 
 .bullet {
   position: relative;
@@ -66,4 +136,9 @@
   .text { font-size: .8rem; line-height: 1.73; }
   .section > h2,
   .answerHeading h2 { font-size: .96rem; }
+  .frameworkBox {
+    padding: 12px 13px 10px;
+    font-size: .78rem;
+  }
+  .majorTitle { font-size: .86rem !important; }
 }
