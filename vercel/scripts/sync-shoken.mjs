@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
-import answerRecords from "../../shoken-answers.mjs";
+import answerRecords from "../../shoken-answers-structured.mjs";
 
 const sourceUrl = new URL("../../shoken.csv", import.meta.url);
 const outputUrl = new URL("../public/shoken.json", import.meta.url);
@@ -67,7 +67,17 @@ if (missingHeaders.length) {
 const records = sourceRecords.map((record) => {
   const id = String(record.id || "");
   const answer = answerRecords[id];
-  if (!answer?.フレームワークを用いた論点整理 || !answer?.合格レベル答案) {
+  if (
+    !answer?.フレームワークを用いた論点整理
+    || !answer?.合格レベル答案
+    || !Array.isArray(answer?.短答)
+    || !Array.isArray(answer?.論文式答案)
+    || answer.論文式答案.some((section) => (
+      !Array.isArray(section?.subgroups)
+      || !section.subgroups.length
+      || section.subgroups.some((subgroup) => !subgroup?.title || !subgroup?.bullets?.length)
+    ))
+  ) {
     throw new Error(`所見答案データが未登録です: id=${id}`);
   }
   const { 論点: _discardedOriginalPoints, ...base } = record;
@@ -75,4 +85,4 @@ const records = sourceRecords.map((record) => {
 });
 
 await writeFile(outputUrl, JSON.stringify(records, null, 2) + "\n", "utf8");
-console.log("shoken.csv と公式解答例ベースの合格答案から " + records.length + " 件を同期しました。");
+console.log("shoken.csv と公式解答例ベースの構造化合格答案から " + records.length + " 件を同期しました。");

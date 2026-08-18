@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { appConfig } from "./config";
+import ShokenAnswerView from "./ShokenAnswerView";
+import ShokenUniversalFramework from "./ShokenUniversalFramework";
 
 const EMPTY_PROGRESS = { ratings: {}, reviewFlags: {}, history: {}, answerViews: {} };
 const DAY_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
@@ -29,7 +31,9 @@ function natural(value) {
 function normalizeRow(row) {
   const clean = {};
   Object.entries(row).forEach(([key, value]) => {
-    clean[String(key).replace(/^\uFEFF/, "")] = value == null ? "" : String(value);
+    clean[String(key).replace(/^\uFEFF/, "")] = value == null
+      ? ""
+      : (typeof value === "object" ? value : String(value));
   });
   return clean;
 }
@@ -733,6 +737,7 @@ function ShokenStudy({ rows }) {
           <p>「何を聞かれているか」「どの順で答えるか」を確認し、論点を分けて順序立てて書く力を養います。</p>
           <h3>3．考えるための型を持つ</h3>
           <p>契約者保護、健全性、公平性、収益性、実務負荷、説明責任などの視点から、問題に応じた論点を組み立てます。</p>
+          <ShokenUniversalFramework />
         </section>
       ) : selectedRows.length ? (
         <div className="shoken-list">
@@ -740,7 +745,7 @@ function ShokenStudy({ rows }) {
             <article className="question-card shoken-card" key={`${row.id}-${index}`}>
               <div className="question-meta"><span>{selected}</span>{row.問題番号 && <span>{row.問題番号}</span>}</div>
               <h2>問題文</h2><div className="multiline">{row.問題文}</div>
-              <h2>論点</h2><ShokenPoints text={row.論点} />
+              <ShokenAnswerView row={row} />
             </article>
           ))}
         </div>
