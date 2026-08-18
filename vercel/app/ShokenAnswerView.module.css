@@ -118,6 +118,20 @@
   font-size: .91rem !important;
 }
 
+.middleGroup {
+  margin: 14px 0 17px;
+  padding-left: 8px;
+  border-left: 1px solid #d9e7e0;
+}
+
+.middleTitle {
+  margin: 0 0 7px;
+  color: #28694f;
+  font-size: .84rem;
+  font-weight: 750;
+  line-height: 1.55;
+}
+
 .bullet {
   position: relative;
   padding-left: 1.15em;
@@ -141,4 +155,9 @@
     font-size: .78rem;
   }
   .majorTitle { font-size: .86rem !important; }
+  .middleGroup {
+    margin: 12px 0 15px;
+    padding-left: 6px;
+  }
+  .middleTitle { font-size: .8rem; }
 }
