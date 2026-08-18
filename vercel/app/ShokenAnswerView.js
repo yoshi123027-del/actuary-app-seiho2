@@ -95,9 +95,11 @@ function EmphasizedText({ text, terms, frequentTopics = [] }) {
 
 function FrequencyBadge({ frequency, compact = false }) {
   if (!frequency) return null;
-  const title = frequency.matches
-    ? frequency.matches.map((item) => `${item.label}：${item.years.join("・")}年度`).join("\n")
-    : `${frequency.label}：${frequency.years.join("・")}年度`;
+  const title = compact
+    ? undefined
+    : frequency.matches
+      ? frequency.matches.map((item) => `${item.label}：${item.years.join("・")}年度`).join("\n")
+      : `${frequency.label}：${frequency.years.join("・")}年度`;
   const levelLabel = frequency.level === "must" ? "最重要" : "頻出";
   return (
     <span
