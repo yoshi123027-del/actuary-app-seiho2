@@ -186,16 +186,10 @@
   font-size: .58rem;
 }
 
-.frequencyMust {
+.frequencyImportant {
   border-color: #e8c66e;
   background: linear-gradient(135deg, #fff4bd, #ffe375);
   color: #654700;
-}
-
-.frequencyFrequent {
-  border-color: #9bcbb8;
-  background: linear-gradient(135deg, #e8f7ef, #cdebdc);
-  color: #18573f;
 }
 
 .majorGroup {
@@ -273,7 +267,7 @@
     flex-direction: column;
     padding: 12px 13px 11px;
   }
-  .legendBadges { grid-template-columns: auto auto auto auto; }
+  .legendBadges { grid-template-columns: auto auto; }
   .middleGroup {
     margin: 12px 0 15px;
     padding-left: 6px;

@@ -100,15 +100,14 @@ function FrequencyBadge({ frequency, compact = false }) {
     : frequency.matches
       ? frequency.matches.map((item) => `${item.label}：${item.years.join("・")}年度`).join("\n")
       : `${frequency.label}：${frequency.years.join("・")}年度`;
-  const levelLabel = frequency.level === "must" ? "最重要" : "頻出";
   return (
     <span
-      className={`${styles.frequencyBadge} ${frequency.level === "must" ? styles.frequencyMust : styles.frequencyFrequent}`}
+      className={`${styles.frequencyBadge} ${styles.frequencyImportant}`}
       title={title}
-      aria-label={`${levelLabel}。${FREQUENCY_TOTAL_YEARS}年度中${frequency.years.length}年度で出題`}
+      aria-label={`重要。${FREQUENCY_TOTAL_YEARS}年度中${frequency.years.length}年度で確認`}
     >
-      <span aria-hidden="true">{frequency.level === "must" ? "★" : "◆"}</span>
-      <strong>{levelLabel}</strong>
+      <span aria-hidden="true">★</span>
+      <strong>重要</strong>
       {!compact && <small>{frequency.years.length}/{FREQUENCY_TOTAL_YEARS}年度</small>}
     </span>
   );
@@ -116,16 +115,14 @@ function FrequencyBadge({ frequency, compact = false }) {
 
 function FrequencyLegend() {
   return (
-    <aside className={styles.frequencyLegend} aria-label="過去問頻出度の見方">
+    <aside className={styles.frequencyLegend} aria-label="重要論点マーカーの見方">
       <div>
-        <strong className={styles.legendTitle}>絶対に覚える頻出論点</strong>
-        <p>{FREQUENCY_PERIOD}の問題・模範解答を横断集計。中項目のバッジと本文のマーカーが暗記優先箇所です。</p>
+        <strong className={styles.legendTitle}>絶対に覚える重要論点</strong>
+        <p>{FREQUENCY_PERIOD}の問題・模範解答で4年度以上確認。中項目のバッジと本文のマーカーが暗記優先箇所です。</p>
       </div>
       <div className={styles.legendBadges}>
-        <FrequencyBadge compact frequency={{ level: "must", label: "最重要", years: [1, 2, 3, 4, 5, 6] }} />
-        <span>6～8年度</span>
-        <FrequencyBadge compact frequency={{ level: "frequent", label: "頻出", years: [1, 2, 3, 4] }} />
-        <span>4～5年度</span>
+        <FrequencyBadge compact frequency={{ label: "重要", years: [1, 2, 3, 4] }} />
+        <span>4年度以上で確認</span>
       </div>
     </aside>
   );

@@ -5,7 +5,6 @@ const topic = (label, years, terms) => ({
   label,
   years,
   terms: [...new Set(terms)].sort((left, right) => right.length - left.length),
-  level: years.length >= 6 ? "must" : "frequent",
 });
 
 // 日本アクチュアリー会の2018～2025年度「生保2」問題・模範解答を年度横断で検索し、
