@@ -6,6 +6,7 @@ export const appConfig = {
   chapterNames: {
       "1": "生命保険会計",
       "3": "契約者配当",
+      "4": "リスク管理（テキスト補完）",
       "5": "事業費の管理・分析",
       "6": "ソルベンシー",
       "7": "内部管理会計",
@@ -18,7 +19,7 @@ export const appConfig = {
     "1": ["第1章 営業保険料の簡易まとめ", "https://drive.google.com/file/d/13fG1wuq-5YG37DpKszP0RoHpdc4B4P2X/view?usp=drive_link"],
     "2": ["第2章 解約返戻金の簡易まとめ", "https://drive.google.com/file/d/1olNfAVmUFRDZELWnL2J2-5gmTG5TFPto/view?usp=sharing"],
     "3": ["第3章 アセットシェアの簡易まとめ", "https://drive.google.com/file/d/1wLd2ihpHmq_AMCoD6TSpQXyUbpGvT0Jw/view?usp=sharing"],
-    "4": ["第4章 商品開発の簡易まとめ", "https://drive.google.com/file/d/1I6IVO8s9DcMpkMIQqAjzqem7lwGhNzkh/view?usp=sharing"],
+    "4": ["第4章 リスク管理（公式テキスト）", "https://www.actuaries.jp/examin/textbook/pdf/hoken2-seiho_04.pdf"],
     "5": ["第5章 変額年金保険の簡易まとめ", "https://drive.google.com/file/d/1MjpsBUqMcZhWIryYQlyBtaDdOpeCeAE8/view?usp=sharing"],
     "6": ["第6章 団体生命保険の簡易まとめ", "https://drive.google.com/file/d/1cSjjyWocIR1D44zSNdM5RGeQ_0ZNMjiN/view?usp=sharing"],
     "7": ["第7章 医療保険の簡易まとめ", "https://drive.google.com/file/d/1nvfrcmni93MDk_18CcRfOurN_wBgS28d/view?usp=sharing"],
