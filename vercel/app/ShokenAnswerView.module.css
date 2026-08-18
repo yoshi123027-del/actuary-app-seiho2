@@ -104,6 +104,100 @@
   border-bottom: 1px solid #dce7e1;
 }
 
+.frequencyLegend {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  margin: 13px 0 18px;
+  padding: 13px 15px 12px;
+  overflow: hidden;
+  border: 1px solid #ead9ac;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff9e9 0%, #fffdf7 54%, #f4faf7 100%);
+  box-shadow: 0 7px 18px rgba(74, 61, 28, .07);
+  color: #514525;
+}
+
+.frequencyLegend::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(#e7aa2f, #2f8764);
+  content: "";
+}
+
+.legendTitle {
+  display: block;
+  margin-bottom: 3px;
+  color: #4d3d15;
+  font-size: .86rem;
+}
+
+.frequencyLegend p {
+  margin: 0;
+  color: #756947;
+  font-size: .7rem;
+  line-height: 1.55;
+}
+
+.legendBadges {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 5px 7px;
+  flex: 0 0 auto;
+  color: #756947;
+  font-size: .65rem;
+}
+
+.middleTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 7px;
+}
+
+.middleTitleRow .middleTitle {
+  margin-bottom: 0;
+}
+
+.frequencyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 3px 7px 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: .62rem;
+  line-height: 1.25;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  box-shadow: 0 2px 7px rgba(68, 52, 14, .08);
+}
+
+.frequencyBadge small {
+  padding-left: 4px;
+  border-left: 1px solid currentColor;
+  opacity: .72;
+  font-size: .58rem;
+}
+
+.frequencyMust {
+  border-color: #e8c66e;
+  background: linear-gradient(135deg, #fff4bd, #ffe375);
+  color: #654700;
+}
+
+.frequencyFrequent {
+  border-color: #9bcbb8;
+  background: linear-gradient(135deg, #e8f7ef, #cdebdc);
+  color: #18573f;
+}
+
 .majorGroup {
   margin: 22px 0 0;
   padding-top: 2px;
@@ -122,6 +216,14 @@
   margin: 14px 0 17px;
   padding-left: 8px;
   border-left: 1px solid #d9e7e0;
+}
+
+.frequentGroup {
+  margin-left: -3px;
+  padding: 10px 10px 5px 12px;
+  border-left: 2px solid #e4b74e;
+  border-radius: 0 9px 9px 0;
+  background: linear-gradient(90deg, rgba(255, 246, 212, .52), rgba(255, 255, 255, 0) 76%);
 }
 
 .middleTitle {
@@ -145,6 +247,17 @@
   font-weight: 800;
 }
 
+.keywordMarker {
+  padding: 0 .08em;
+  border-radius: 2px;
+  background: linear-gradient(transparent 54%, rgba(255, 205, 68, .58) 54%, rgba(255, 221, 119, .38) 94%, transparent 94%);
+  color: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 @media (max-width: 720px) {
   .section { padding-top: 17px; }
   .text { font-size: .8rem; line-height: 1.73; }
@@ -155,9 +268,18 @@
     font-size: .78rem;
   }
   .majorTitle { font-size: .86rem !important; }
+  .frequencyLegend {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 12px 13px 11px;
+  }
+  .legendBadges { grid-template-columns: auto auto auto auto; }
   .middleGroup {
     margin: 12px 0 15px;
     padding-left: 6px;
   }
+  .middleTitleRow { align-items: flex-start; }
+  .frequencyBadge { font-size: .58rem; }
+  .frequencyBadge small { display: none; }
   .middleTitle { font-size: .8rem; }
 }
